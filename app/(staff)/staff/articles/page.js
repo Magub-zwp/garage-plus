@@ -1,0 +1,112 @@
+'use client'
+import { useState, useEffect } from 'react'
+// FIX BUG-008: import useSearchParams เพื่อ trigger refetch เมื่อกลับมาจาก new article
+import { useSearchParams } from 'next/navigation'
+import DashboardShell from '@/components/staff/DashboardShell'
+import Link from 'next/link'
+import { getAllArticles, updateArticle, deleteArticle } from '@/lib/firebase/firestore'
+
+export default function StaffArticlesPage() {
+  const searchParams = useSearchParams()
+  const [articles, setArticles] = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [filter,   setFilter]   = useState('all')
+
+  
+  useEffect(() => {
+    setLoading(true)
+    getAllArticles().then(setArticles).catch(console.error).finally(() => setLoading(false))
+  }, [searchParams.get('refresh')])
+// Function to toggle publish status of an article
+  const togglePublish = async (id, current) => {
+    await updateArticle(id, { published: !current })
+    setArticles(prev => prev.map(a => a.id===id ? {...a, published:!a.published} : a))
+  }
+  const handleDelete = async (id) => {
+    if (!confirm('ลบบทความนี้?')) return
+    await deleteArticle(id)
+    setArticles(prev => prev.filter(a => a.id!==id))
+  }
+
+  const shown = filter==='all' ? articles : articles.filter(a => a.type===filter)
+// Filter articles based on selected type (all, external, internal)
+  return (
+    <DashboardShell requiredRole="admin">
+      <div className="flex justify-between items-center mb-5">
+        <h1 className="font-syne text-xl font-bold text-t1">จัดการบทความ</h1>
+        <Link href="/staff/articles/new">
+          <button className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer"
+            style={{ background:'var(--acc)' }}>+ เพิ่มบทความ / URL</button>
+        </Link>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {[
+          { label:'ทั้งหมด',           value:articles.length,                                      color:'var(--t1)' },
+          { label:'External (ลิงก์)',  value:articles.filter(a=>a.type==='external').length,       color:'var(--blue)' },
+          { label:'Internal (เขียนเอง)',value:articles.filter(a=>a.type==='internal').length,      color:'var(--acc)' },
+        ].map(s => (
+          <div key={s.label} className="card p-4 text-center">
+            <div className="text-t2 text-xs mb-1">{s.label}</div>
+            <div className="font-syne text-2xl font-extrabold" style={{ color:s.color }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-2 mb-4">
+        {[{k:'all',l:'ทั้งหมด'},{k:'external',l:'🔗 External'},{k:'internal',l:'📝 Internal'}].map(f => (
+          <button key={f.k} onClick={() => setFilter(f.k)}
+            className="px-3 py-1.5 rounded-full text-xs font-semibold border-none cursor-pointer"
+            style={{ background:filter===f.k?'var(--acc)':'var(--surf)', color:filter===f.k?'#fff':'var(--t2)', border:`0.5px solid ${filter===f.k?'var(--acc)':'var(--brd2)'}` }}>
+            {f.l}
+          </button>
+        ))}
+      </div>
+// Article list or loading/error states
+      {loading ? (
+        <div className="flex justify-center pt-16">
+          <span className="inline-block w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+            style={{ borderColor:'var(--acc)', borderTopColor:'transparent' }}/>
+        </div>
+      ) : shown.length === 0 ? (
+        <div className="card p-10 text-center">
+          <span className="text-4xl mb-3 block">📰</span>
+          <p className="font-syne text-sm font-bold text-t1 mb-1">ยังไม่มีบทความ</p>
+          <p className="text-xs text-t2">กด "+ เพิ่มบทความ" เพื่อเริ่มต้น</p>
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="data-table" style={{ tableLayout:'fixed', width:'100%' }}>
+            <colgroup><col/><col style={{ width:90 }}/><col style={{ width:80 }}/><col style={{ width:64 }}/><col style={{ width:56 }}/></colgroup>
+            <thead>
+              <tr><th>ชื่อ</th><th>ประเภท</th><th>หมวด</th><th>สถานะ</th><th></th></tr>
+            </thead>
+            <tbody>
+              {shown.map(a => (
+                <tr key={a.id}>
+                  <td className="text-sm font-semibold text-t1 truncate">{a.title||'-'}</td>
+                  <td><span className={`bdg ${a.type==='external'?'bdg-hold':'bdg-done'}`}>{a.type==='external'?'🔗 Link':'📝 Own'}</span></td>
+                  <td className="text-xs text-t2">{a.category||'-'}</td>
+                  <td>
+                    <button onClick={() => togglePublish(a.id, a.published)}
+                      className="text-xs font-bold px-2 py-1 rounded-full border-none cursor-pointer"
+                      style={{ background:a.published?'var(--gdim)':'var(--s2)', color:a.published?'var(--grn)':'var(--t3)' }}>
+                      {a.published?'เผยแพร่':'ซ่อน'}
+                    </button>
+                  </td>
+                  <td>
+                    <button onClick={() => handleDelete(a.id)}
+                      className="text-xs font-bold px-2 py-1 rounded-full border-none cursor-pointer"
+                      style={{ background:'var(--errdim)', color:'var(--err)' }}>ลบ</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </DashboardShell>
+  )
+}

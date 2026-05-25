@@ -1,0 +1,305 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* ── Design Tokens ── */
+:root {
+  --bg: #F7F4F0;
+  --surf: #FFFFFF;
+  --s2: #EEE9E3;
+  --s3: #E5DED7;
+  --t1: #1C1B19;
+  --t2: #6E6C67;
+  --t3: #B4B0A8;
+  --acc: #E8863A;
+  --acc-hover: #C96E25;
+  --adim: rgba(232, 134, 58, 0.10);
+  --abrd: rgba(232, 134, 58, 0.28);
+  --grn: #2D9E65;
+  --gdim: rgba(45, 158, 101, 0.10);
+  --gbrd: rgba(45, 158, 101, 0.25);
+  --err: #E85C3A;
+  --errdim: rgba(232, 92, 58, 0.10);
+  --brd: rgba(0, 0, 0, 0.07);
+  --brd2: rgba(0, 0, 0, 0.13);
+  --frame: #D0CBC4;
+}
+
+.dark {
+  --bg: #131312;
+  --surf: #1E1D1C;
+  --s2: #272624;
+  --s3: #302E2C;
+  --t1: #F4F2EE;
+  --t2: #8A8780;
+  --t3: #5A5855;
+  --adim: rgba(232, 134, 58, 0.13);
+  --abrd: rgba(232, 134, 58, 0.32);
+  --gdim: rgba(45, 158, 101, 0.12);
+  --gbrd: rgba(45, 158, 101, 0.28);
+  --brd: rgba(255, 255, 255, 0.07);
+  --brd2: rgba(255, 255, 255, 0.13);
+  --frame: #0A0A09;
+}
+
+/* ── Base ── */
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg);
+  color: var(--t1);
+  font-family: var(--font-dm), 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Utility Classes (token-based) ── */
+@layer utilities {
+  .bg-tok         { background-color: var(--bg); }
+  .bg-token       { background-color: var(--bg); }
+  .bg-surf        { background-color: var(--surf); }
+  .bg-s2          { background-color: var(--s2); }
+  .bg-s3          { background-color: var(--s3); }
+  .bg-adim        { background-color: var(--adim); }
+  .bg-gdim        { background-color: var(--gdim); }
+  .bg-errdim      { background-color: var(--errdim); }
+
+  .text-t1        { color: var(--t1); }
+  .text-t2        { color: var(--t2); }
+  .text-t3        { color: var(--t3); }
+  .text-acc       { color: var(--acc); }
+  .text-grn       { color: var(--grn); }
+  .text-err       { color: var(--err); }
+
+  .border-token   { border: 0.5px solid var(--brd); }
+  .border-token2  { border: 0.5px solid var(--brd2); }
+  .border-acc     { border: 0.5px solid var(--abrd); }
+  .border-grn     { border: 0.5px solid var(--gbrd); }
+  .border-dashed-acc { border: 0.5px dashed var(--abrd); }
+
+  .font-syne      { font-family: var(--font-syne), 'Syne', sans-serif; }
+}
+
+/* ── Component Base Styles ── */
+@layer components {
+  /* Page layout */
+  .page-container {
+    @apply min-h-screen bg-token flex flex-col;
+    padding-bottom: env(safe-area-inset-bottom, 80px);
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-surf rounded-2xl border-token p-4;
+  }
+  .card-s2 {
+    @apply bg-s2 rounded-2xl border-token2 p-4;
+  }
+
+  /* Input */
+  .input-field {
+    @apply w-full bg-s2 border-token2 rounded-xl px-3 py-3 text-t1 text-sm font-dm
+           outline-none focus:border-acc transition-colors placeholder:text-t3;
+    border-width: 0.5px;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply w-full py-4 rounded-2xl font-syne text-sm font-extrabold
+           text-white tracking-wide active:opacity-80 transition-opacity;
+    background-color: var(--acc);
+  }
+
+  /* Section header */
+  .section-header {
+    @apply flex justify-between items-center px-4 pb-2;
+  }
+  .section-title {
+    @apply font-syne text-sm font-bold text-t1;
+  }
+  .section-link {
+    @apply text-xs text-acc font-semibold cursor-pointer;
+  }
+
+  /* Field label */
+  .field-label {
+    @apply text-xs text-t3 uppercase tracking-widest mb-1 flex items-center gap-1;
+  }
+  .required-mark {
+    @apply text-err text-xs;
+  }
+
+  /* Badge */
+  .badge-orange {
+    @apply text-acc bg-adim border-acc text-xs font-bold px-2 py-0.5 rounded-full;
+    border-width: 0.5px;
+  }
+  .badge-green {
+    @apply text-grn bg-gdim border-grn text-xs font-bold px-2 py-0.5 rounded-full;
+    border-width: 0.5px;
+  }
+
+  /* Toggle */
+  .toggle {
+    @apply relative w-9 h-5 rounded-full bg-s3 cursor-pointer transition-colors;
+    border: 0.5px solid var(--brd2);
+  }
+  .toggle.on { background-color: var(--acc); }
+  .toggle::after {
+    content: '';
+    @apply absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform;
+  }
+  .toggle.on::after { transform: translateX(16px); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 flex bg-surf z-50;
+    border-top: 0.5px solid var(--brd);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .nav-item {
+    @apply flex-1 flex flex-col items-center gap-0.5 py-2 cursor-pointer;
+  }
+  .nav-item .nav-icon  { @apply text-lg; }
+  .nav-item .nav-label { @apply text-xs text-t3 font-medium; }
+  .nav-item.active .nav-label { color: var(--acc); font-weight: 700; }
+
+  /* Page header with back */
+  .page-header {
+    @apply flex items-center gap-3 px-4 py-3;
+  }
+  .back-btn {
+    @apply w-8 h-8 bg-s2 rounded-xl flex items-center justify-center text-t2 text-sm cursor-pointer;
+  }
+  .page-title {
+    @apply font-syne text-base font-bold text-t1 flex-1;
+  }
+
+  /* Profile row */
+  .profile-row {
+    @apply flex items-center gap-3 py-2.5 cursor-pointer;
+    border-bottom: 0.5px solid var(--brd);
+  }
+  .profile-row:last-child { border-bottom: none; }
+  .profile-row-icon {
+    @apply w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0;
+  }
+
+  /* Pill selector */
+  .sel-pill {
+    @apply px-3 py-1 rounded-full text-xs font-semibold cursor-pointer bg-s2 text-t2;
+    border: 0.5px solid var(--brd2);
+  }
+  .sel-pill.active {
+    background-color: var(--acc);
+    @apply text-white;
+    border-color: var(--acc);
+  }
+
+  /* Tracking step */
+  .track-step {
+    @apply flex gap-3 relative pb-0;
+  }
+  .track-connector {
+    @apply absolute left-4 top-8 bottom-0 w-px;
+    background-color: var(--brd2);
+  }
+  .track-dot {
+    @apply w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10 text-xs font-bold;
+  }
+  .track-dot.done  { background-color: var(--grn); color: #fff; }
+  .track-dot.active { background-color: var(--acc); color: #fff; }
+  .track-dot.pending { background-color: var(--s2); color: var(--t3); border: 0.5px solid var(--brd2); }
+  .track-content { @apply flex-1 pb-5; }
+  .track-title   { @apply text-sm font-semibold text-t1; }
+  .track-sub     { @apply text-xs text-t2 mt-0.5 leading-relaxed; }
+  .track-time    { @apply text-xs text-t3 mt-1; }
+  .track-done .track-title  { @apply text-t1; }
+  .track-pending .track-title { color: var(--t3); }
+
+  /* Scrollbar hide */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* ── Staff Portal additions (v3) ── */
+@layer utilities {
+  .bg-bldim { background-color: var(--bldim, rgba(24,95,165,.10)); }
+  .text-blue { color: var(--blue, #185FA5); }
+  .bg-errdim { background-color: var(--errdim); }
+  .text-err  { color: var(--err); }
+  .text-grn  { color: var(--grn); }
+  .bg-gdim   { background-color: var(--gdim); }
+  .bg-adim   { background-color: var(--adim); }
+}
+
+@layer components {
+  /* Staff data table */
+  .data-table { @apply w-full border-collapse text-sm; }
+  .data-table th { @apply text-left px-3 py-2 text-t3 font-bold uppercase tracking-wider; font-size:10px; border-bottom:0.5px solid var(--brd2); }
+  .data-table td { @apply px-3 py-2 text-t1; border-bottom:0.5px solid var(--brd); vertical-align:middle; }
+  .data-table tr:last-child td { border-bottom:none; }
+  .data-table tr:hover td { background:var(--s2); }
+
+  /* Staff card */
+  .card { @apply bg-surf rounded-xl; border:0.5px solid var(--brd); }
+
+  /* Staff plate */
+  .plate { @apply text-t2 font-bold tracking-widest; font-size:10px; background:var(--s2); border:0.5px solid var(--brd2); border-radius:5px; padding:2px 8px; }
+
+  /* Staff badge variants */
+  .bdg-rep  { background:var(--adim); color:var(--acc);  border:0.5px solid var(--abrd); @apply text-xs font-bold px-2 py-0.5 rounded-full; }
+  .bdg-done { background:var(--gdim); color:var(--grn);  border:0.5px solid var(--gbrd); @apply text-xs font-bold px-2 py-0.5 rounded-full; }
+  .bdg-wait { background:rgba(24,95,165,.10); color:var(--blue,#185FA5); border:0.5px solid rgba(24,95,165,.28); @apply text-xs font-bold px-2 py-0.5 rounded-full; }
+  .bdg-hold { background:rgba(234,179,8,.1); color:#854F0B; border:0.5px solid rgba(234,179,8,.3); @apply text-xs font-bold px-2 py-0.5 rounded-full; }
+
+  /* Staff action button */
+  .act { @apply text-xs font-bold px-2.5 py-1 rounded-full cursor-pointer border-none; background:var(--adim); color:var(--acc); }
+  .act:hover { background:var(--acc); color:#fff; }
+
+  /* Staff active-role nav classes */
+  .active-admin { background:var(--adim); color:var(--acc); font-weight:700; }
+  .active-mech  { background:var(--gdim); color:var(--grn); font-weight:700; }
+
+  /* Border accent classes */
+  .border-tok2 { border:0.5px solid var(--brd2); }
+  .border-acc  { border:0.5px solid var(--abrd); }
+}
+
+/* CSS variables for staff-only tokens */
+:root {
+  --bldim: rgba(24,95,165,.10);
+  --blue: #185FA5;
+}
+.dark {
+  --bldim: rgba(24,95,165,.14);
+}
+
+.page-container {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* BottomNav ติด bottom อย่างถูกต้องบน iPhone */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ป้องกัน z-index ของ card บัง quick-action buttons */
+.quick-action-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.page-container {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* BottomNav ติด bottom อย่างถูกต้องบน iPhone */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ป้องกัน z-index ของ card บัง quick-action buttons */
+.quick-action-grid {
+  position: relative;
+  z-index: 1;
+}
