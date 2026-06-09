@@ -4,10 +4,9 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
-
-const STEPS     = ['รับรถ', 'ตรวจ', 'ซ่อม', 'QC', 'เสร็จ']
-const STATUS_MAP = ['waiting', 'diagnosing', 'repairing', 'qc', 'done']
+import { doc, getDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
+import { STEPS, STATUS_MAP, statusIndex, canTransition, REPAIRING_IDX } from '@/lib/repairStatus'
+import { notifyRepairStatus, syncBookingStatus, pushNotification } from '@/lib/notify'
 
 export default function MechRepairPage() {
   const params   = useSearchParams()
@@ -17,34 +16,36 @@ export default function MechRepairPage() {
   const [done,     setDone]     = useState(new Set())
   const [item,     setItem]     = useState('')
   const [qty,      setQty]      = useState('')
-  const [price,    setPrice]    = useState('')
-  const [note,     setNote]     = useState('')
+  const [note,     setNote]     = useState('')   // TC-X03: note จะถูกบันทึกจริง
   const [saving,   setSaving]   = useState(false)
   const [msg,      setMsg]      = useState('')
   const [loading,  setLoading]  = useState(true)
+  const [err,      setErr]      = useState('')   // TC-X02: surface error
 
-  useEffect(() => {
+  const loadRepair = () => {
     if (!repairId) { setLoading(false); return }
     getDoc(doc(db, 'repairs', repairId)).then(snap => {
       if (snap.exists()) {
         const data = { id: snap.id, ...snap.data() }
         setRepair(data)
-        const stepIdx = STATUS_MAP.indexOf(data.status)
+        const stepIdx = statusIndex(data.status)
         const s = new Set()
         for (let i = 0; i <= stepIdx && stepIdx >= 0; i++) s.add(i)
         setDone(s)
       }
-    }).catch(console.error).finally(() => setLoading(false))
-  }, [repairId])
+    }).catch(e => setErr('โหลดข้อมูลไม่สำเร็จ: ' + e.message)).finally(() => setLoading(false))
+  }
+  useEffect(loadRepair, [repairId])
 
-  //ป้องกันการกดขั้นตอนย้อนกลับไปสถานะก่อนหน้า
+  // TC-S01: ทำทีละขั้น ห้ามย้อน ห้ามข้าม
   const toggleStep = (i) => {
     if (!repair) return
-    const currentIdx = STATUS_MAP.indexOf(repair.status)
-    if (i < currentIdx) return 
+    const currentIdx = statusIndex(repair.status)
+    if (i < currentIdx) return            // ห้ามย้อน
+    if (i > currentIdx + 1) return        // ห้ามข้ามขั้น
     setDone(prev => {
       const n = new Set(prev)
-      if (n.has(i)) { for (let j = i; j < 5; j++) n.delete(j) }
+      if (n.has(i)) { for (let j = i; j < STATUS_MAP.length; j++) n.delete(j) }
       else          { for (let j = 0; j <= i; j++) n.add(j) }
       return n
     })
@@ -53,39 +54,67 @@ export default function MechRepairPage() {
   const cur       = Math.max(-1, ...[...done]) + 1
   const newStatus = STATUS_MAP[Math.max(...[...done], 0)] || 'waiting'
 
+  const approval     = repair?.approval
+  const isApproved   = approval?.state === 'approved'
+  const needApproval = statusIndex(newStatus) >= REPAIRING_IDX && !isApproved
+
   const handleSave = async () => {
     if (!repair) return
-
-
-    const prevIdx = STATUS_MAP.indexOf(repair.status)
-    const nextIdx = STATUS_MAP.indexOf(newStatus)
-    if (nextIdx < prevIdx) {
-      setMsg('❌ ไม่สามารถย้อนสถานะกลับได้')
-      return
-    }
+    const check = canTransition(repair.status, newStatus, approval)
+    if (!check.ok) { setMsg('❌ ' + check.reason); return }
 
     setSaving(true); setMsg('')
     try {
-      await updateDoc(doc(db, 'repairs', repair.id), {
+      const updates = {
         status:    newStatus,
         updatedAt: serverTimestamp(),
-        ...(item ? {
-          costItems: [...(repair.costItems||[]), {
-            name: item, qty: parseInt(qty)||1, price: parseFloat(price)||0,
-          }]
-        } : {}),
-      })
-      // แจ้งเตือนลูกค้าด้วยผ่าน Cloud Function ที่ฟังการเปลี่ยนแปลงของ repair.status
+        timeline:  arrayUnion({ status: newStatus, at: Date.now(), by: 'mechanic', note: note || '' }), // TC-X04
+      }
+      // เก็บเฉพาะชื่อ+จำนวน (ตัดราคาออกตามขอบเขต v.นี้)
+      if (item) updates.proposedJobs = arrayUnion({ name: item, qty: parseInt(qty) || 1 })
+      if (note) updates.lastNote = note
+
+      await updateDoc(doc(db, 'repairs', repair.id), updates)
+
+      // TC-S01/C09: แจ้งเตือนลูกค้า (เขียน notification doc จริง)
+      await notifyRepairStatus({ ...repair }, newStatus)
+      // TC-S08: sync สถานะ booking ให้ dashboard/คิวนับถูก
+      await syncBookingStatus(repair.bookingId, newStatus)
+
       setRepair(prev => ({ ...prev, status: newStatus }))
-      // รีเซ็ต done set ให้ตรงกับสถานะใหม่
-      const newIdx = STATUS_MAP.indexOf(newStatus)
+      const newIdx = statusIndex(newStatus)
       const newDone = new Set()
       for (let i = 0; i <= newIdx; i++) newDone.add(i)
       setDone(newDone)
-      setMsg('✅ บันทึกสถานะแล้ว')
-      setItem(''); setQty(''); setPrice(''); setNote('')
+      setMsg('✅ บันทึกสถานะแล้ว — แจ้งเตือนลูกค้าเรียบร้อย')
+      setItem(''); setQty(''); setNote('')
     } catch(e) {
-      setMsg(`❌ ${e.message}`)
+      setMsg(`❌ ${e.code === 'permission-denied' ? 'ไม่มีสิทธิ์บันทึก (ตรวจสอบการล็อกอิน staff)' : e.message}`)
+    } finally { setSaving(false) }
+  }
+
+  // TC-S01 + consent: ส่งงานให้ลูกค้าอนุมัติ (ตั้ง awaiting_approval + approval.pending)
+  const handleRequestApproval = async () => {
+    if (!repair) return
+    setSaving(true); setMsg('')
+    try {
+      await updateDoc(doc(db, 'repairs', repair.id), {
+        status:   'awaiting_approval',
+        approval: { state: 'pending', approvedBy: null, approvedAt: null, note: '' },
+        updatedAt: serverTimestamp(),
+        timeline: arrayUnion({ status: 'awaiting_approval', at: Date.now(), by: 'mechanic', note: note || '' }),
+      })
+      await pushNotification({
+        userId: repair.userId,
+        title:  'มีงานซ่อมรอคุณอนุมัติ',
+        body:   'ช่างประเมินงานเสร็จแล้ว กรุณายืนยันเพื่อเริ่มซ่อม',
+        type:   'approval',
+        link:   '/status',
+      })
+      setRepair(prev => ({ ...prev, status: 'awaiting_approval', approval: { state: 'pending' } }))
+      setMsg('✅ ส่งให้ลูกค้าอนุมัติแล้ว — รอลูกค้ายืนยัน')
+    } catch(e) {
+      setMsg('❌ ' + e.message)
     } finally { setSaving(false) }
   }
 
@@ -96,13 +125,13 @@ export default function MechRepairPage() {
         <h1 className="font-syne text-xl font-bold text-t1">บันทึกงานซ่อม</h1>
       </div>
 
+      {err && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim">{err}</div>}
+
       {!repairId ? (
         <div className="card p-10 text-center">
           <span className="text-4xl mb-3 block">🔧</span>
           <p className="font-syne text-sm font-bold text-t1 mb-2">ไม่ได้เลือกงานซ่อม</p>
-          <Link href="/staff/mech/queue" className="text-xs text-acc font-semibold">
-            ← กลับไปที่คิว
-          </Link>
+          <Link href="/staff/mech/queue" className="text-xs text-acc font-semibold">← กลับไปที่คิว</Link>
         </div>
       ) : loading ? (
         <div className="flex justify-center pt-20">
@@ -119,9 +148,9 @@ export default function MechRepairPage() {
               ['รถ',      `${repair.carName||''} ${repair.plate||repair.carPlate||''}`],
               ['งาน',     repair.jobDetail||'-'],
               ['สถานะ',   repair.status],
+              ['อนุมัติ', approval ? (approval.state === 'approved' ? '✅ อนุมัติแล้ว' : approval.state === 'rejected' ? '❌ ลูกค้าปฏิเสธ' : '⏳ รอลูกค้าอนุมัติ') : '— ยังไม่ส่ง'],
             ].map(([k,v]) => (
-              <div key={k} className="flex justify-between py-1.5"
-                style={{ borderBottom:'0.5px solid var(--brd)' }}>
+              <div key={k} className="flex justify-between py-1.5" style={{ borderBottom:'0.5px solid var(--brd)' }}>
                 <span className="text-xs text-t2">{k}</span>
                 <span className="text-xs font-semibold text-t1">{v}</span>
               </div>
@@ -130,23 +159,24 @@ export default function MechRepairPage() {
 
           {/* Step bar */}
           <div className="card p-4">
-            <p className="text-xs text-t3 mb-2">อัปเดตขั้นตอน</p>
+            <p className="text-xs text-t3 mb-2">อัปเดตขั้นตอน (ทีละขั้น)</p>
             <div className="flex rounded-xl overflow-hidden" style={{ border:'0.5px solid var(--brd)' }}>
               {STEPS.map((s, i) => {
-                const currentIdx = STATUS_MAP.indexOf(repair.status)
+                const currentIdx = statusIndex(repair.status)
                 const isPast     = i < currentIdx
                 const isDoneStep = done.has(i)
                 const isCur      = i === cur
+                const locked     = i < currentIdx || i > currentIdx + 1
                 return (
-                  <button key={s} onClick={() => toggleStep(i)}
-                    disabled={isPast}
-                    className="flex-1 py-2 text-xs font-semibold text-center border-none"
+                  <button key={s} onClick={() => toggleStep(i)} disabled={locked}
+                    className="flex-1 py-2 font-semibold text-center border-none"
                     style={{
-                      borderRight: i < 4 ? '0.5px solid var(--brd)' : 'none',
-                      background:  isPast ? 'var(--gdim)' : isDoneStep ? 'var(--gdim)' : isCur ? 'var(--acc)' : 'var(--s2)',
-                      color:       isPast ? 'var(--grn)'  : isDoneStep ? 'var(--grn)'  : isCur ? '#fff' : 'var(--t3)',
-                      cursor:      isPast ? 'not-allowed' : 'pointer',
-                      opacity:     isPast ? 0.7 : 1,
+                      fontSize: 10,
+                      borderRight: i < STEPS.length-1 ? '0.5px solid var(--brd)' : 'none',
+                      background:  (isPast||isDoneStep) ? 'var(--gdim)' : isCur ? 'var(--acc)' : 'var(--s2)',
+                      color:       (isPast||isDoneStep) ? 'var(--grn)'  : isCur ? '#fff' : 'var(--t3)',
+                      cursor:      locked ? 'not-allowed' : 'pointer',
+                      opacity:     locked && !isDoneStep ? 0.55 : 1,
                     }}>
                     {(isPast || isDoneStep) ? '✓ ' : ''}{s}
                   </button>
@@ -155,39 +185,42 @@ export default function MechRepairPage() {
             </div>
             <p className="text-xs text-t3 mt-2">
               จะบันทึกสถานะ: <strong className="text-acc">{newStatus}</strong>
+              {needApproval && <span className="text-err ml-2">⚠️ ต้องรออนุมัติก่อน</span>}
             </p>
           </div>
 
-          {/* Input */}
+          {/* Consent gate — ส่งให้ลูกค้าอนุมัติ */}
+          {repair.status === 'diagnosing' && (!approval || approval.state !== 'approved') && (
+            <div className="card p-4" style={{ border:'0.5px solid var(--abrd)' }}>
+              <p className="text-xs font-bold text-t1 mb-1">📋 ส่งให้ลูกค้าอนุมัติก่อนซ่อม</p>
+              <p className="text-xs text-t2 mb-3">เพิ่มรายการงานที่จะทำ แล้วกดส่งให้ลูกค้ายืนยัน (ซ่อมต่อไม่ได้จนกว่าลูกค้าจะอนุมัติ)</p>
+              <button onClick={handleRequestApproval} disabled={saving}
+                className="w-full py-2.5 rounded-xl text-sm font-bold text-white border-none cursor-pointer"
+                style={{ background:'var(--acc)' }}>
+                ส่งให้ลูกค้าอนุมัติ
+              </button>
+            </div>
+          )}
+
+          {/* Input — เฉพาะชื่อ/จำนวน (ไม่มีราคา) */}
           <div className="card p-4">
             <p className="text-xs font-bold text-t3 uppercase tracking-widest mb-3">เพิ่มรายการ/อะไหล่</p>
             <input className="input-field mb-2" placeholder="ชื่ออะไหล่ / รายการ"
               value={item} onChange={e => setItem(e.target.value)} style={{ fontSize:12 }} />
-            <div className="flex gap-2 mb-2">
-              <input className="input-field" style={{ width:72, fontSize:12 }}
-                placeholder="จำนวน" value={qty} onChange={e => setQty(e.target.value)} type="number" />
-              <input className="input-field flex-1" style={{ fontSize:12 }}
-                placeholder="ราคา (บาท)" value={price} onChange={e => setPrice(e.target.value)} type="number" />
-            </div>
+            <input className="input-field mb-2" style={{ width:96, fontSize:12 }}
+              placeholder="จำนวน" value={qty} onChange={e => setQty(e.target.value)} type="number" />
             <textarea className="input-field resize-none mb-3" style={{ height:50, fontSize:12 }}
               placeholder="หมายเหตุ..." value={note} onChange={e => setNote(e.target.value)} />
 
-            {(repair.costItems||[]).length > 0 && (
+            {(repair.proposedJobs||[]).length > 0 && (
               <div className="mb-3 p-3 rounded-xl" style={{ background:'var(--s2)' }}>
-                <p className="text-xs font-bold text-t2 mb-2">รายการที่บันทึกไว้แล้ว</p>
-                {repair.costItems.map((ci, idx) => (
+                <p className="text-xs font-bold text-t2 mb-2">รายการงานที่บันทึกไว้</p>
+                {repair.proposedJobs.map((ci, idx) => (
                   <div key={idx} className="flex justify-between text-xs py-0.5">
-                    <span className="text-t2">{ci.name} ×{ci.qty}</span>
-                    <span className="font-semibold text-t1">฿{(ci.price||0).toLocaleString()}</span>
+                    <span className="text-t2">{ci.name}</span>
+                    <span className="font-semibold text-t1">×{ci.qty}</span>
                   </div>
                 ))}
-                <div className="flex justify-between text-xs pt-1 mt-1"
-                  style={{ borderTop:'0.5px solid var(--brd)' }}>
-                  <span className="font-bold text-t1">รวม</span>
-                  <span className="font-extrabold text-acc">
-                    ฿{repair.costItems.reduce((s,i)=>s+(i.price||0),0).toLocaleString()}
-                  </span>
-                </div>
               </div>
             )}
 
@@ -201,12 +234,12 @@ export default function MechRepairPage() {
               </div>
             )}
 
-            <button onClick={handleSave} disabled={saving || STATUS_MAP.indexOf(newStatus) < STATUS_MAP.indexOf(repair.status)}
+            <button onClick={handleSave} disabled={saving || needApproval || statusIndex(newStatus) === statusIndex(repair.status)}
               className="w-full py-3 rounded-xl text-sm font-bold text-white border-none cursor-pointer flex items-center justify-center gap-2"
-              style={{ background:'var(--acc)', opacity: saving ? 0.7 : 1 }}>
+              style={{ background: needApproval ? 'var(--s3)' : 'var(--acc)', color: needApproval ? 'var(--t3)' : '#fff', opacity: saving ? 0.7 : 1 }}>
               {saving
                 ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />บันทึก...</>
-                : 'บันทึก + แจ้งลูกค้า'}
+                : needApproval ? 'รอลูกค้าอนุมัติก่อน' : 'บันทึก + แจ้งเตือนลูกค้า'}
             </button>
           </div>
         </div>
