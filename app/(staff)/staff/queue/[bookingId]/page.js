@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, addDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore'
+import { ACTIVE_STATUSES } from '@/lib/repairStatus'
+import { pushNotification } from '@/lib/notify'
 
 const STATUS_OPTS = [
   { value: 'pending',   label: 'รอยืนยัน',    color: 'var(--t2)'  },
@@ -33,7 +35,7 @@ export default function BookingDetailPage() {
       })
       .finally(() => setLoading(false))
   }, [bookingId])
-// Function to handle status update and notify customer
+
   const handleUpdate = async () => {
     if (!booking || newStatus === booking.status) return
     setSaving(true); setMsg('')
@@ -43,10 +45,57 @@ export default function BookingDetailPage() {
         updatedAt: serverTimestamp(),
       })
 
-      
-      // จะ trigger อัตโนมัติเมื่อ Firestore document เปลี่ยน ไม่ต้อง call ซ้ำ
+      // TC-S06: เมื่อยืนยันการจอง -> สร้าง repair อัตโนมัติ (ผูก userId) ให้งานไหลเข้าคิวช่าง
+      if (newStatus === 'confirmed') {
+        const plate = booking.carPlate || booking.plate || ''
+        const dup = await getDocs(query(
+          collection(db, 'repairs'),
+          where('bookingId', '==', bookingId),
+          where('status', 'in', ACTIVE_STATUSES)
+        ))
+        if (dup.empty) {
+          await addDoc(collection(db, 'repairs'), {
+            bookingId,
+            userId:     booking.userId || '',
+            plate,
+            carName:    booking.carName || '',
+            jobDetail:  (booking.serviceType || []).join(', '),
+            mechanicId: '',
+            status:     'waiting',
+            approval:   { state: 'none', approvedBy: null, approvedAt: null, note: '' },
+            timeline:   [{ status: 'waiting', at: Date.now(), by: 'admin', note: 'ยืนยันการจอง' }],
+            proposedJobs: [],
+            entryTime:  serverTimestamp(),
+            createdAt:  serverTimestamp(),
+            updatedAt:  serverTimestamp(),
+          })
+        }
+        // แจ้งเตือนลูกค้าว่าการจองได้รับการยืนยัน
+        await pushNotification({
+          userId: booking.userId,
+          title:  'การจองได้รับการยืนยันแล้ว',
+          body:   `${booking.date || ''} ${booking.time || ''} น. · ${plate}`,
+          type:   'booking',
+          link:   '/my-bookings',
+        })
+      }
+
+      // แจ้งเตือนกรณียกเลิก (ให้ข้อความตรงกับสิ่งที่เกิดจริง — ไม่พึ่ง Cloud Function)
+      if (newStatus === 'cancelled') {
+        await pushNotification({
+          userId: booking.userId,
+          title:  'การจองถูกยกเลิก',
+          body:   `${booking.date || ''} ${booking.time || ''} น. · ${booking.carPlate || booking.plate || ''}`,
+          type:   'booking',
+          link:   '/my-bookings',
+        })
+      }
+
       setBooking(prev => ({ ...prev, status: newStatus }))
-      setMsg('✅ อัปเดตสถานะแล้ว (ลูกค้าจะได้รับแจ้งเตือนอัตโนมัติ)')
+      // ข้อความตรงตามจริง: แจ้งเตือนในแอพถูกเขียนแล้ว (กระดิ่งเด้ง) — push LINE/นอกแอพ = v.ถัดไป
+      setMsg(newStatus === 'pending'
+        ? '✅ อัปเดตสถานะแล้ว'
+        : '✅ อัปเดตสถานะแล้ว — แจ้งเตือนลูกค้าในแอพเรียบร้อย')
     } catch (e) {
       setMsg(`❌ ${e.message}`)
     } finally {
