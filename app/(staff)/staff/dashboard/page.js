@@ -13,8 +13,10 @@ export default function DashboardPage() {
   const [todayQueue, setTodayQueue] = useState([])
   const [newBooks,   setNewBooks]   = useState([])
   const [loading,    setLoading]    = useState(true)
+  const [err,        setErr]        = useState('')   // ข้อความ error ที่จะแสดงให้ staff เห็นบนหน้าจอ
 
-  
+  // ฟังข้อมูลแบบ real-time ด้วย onSnapshot (ไม่ใช่ fetch ครั้งเดียว) เพื่อให้ตัวเลขบน dashboard
+  // อัปเดตทันทีเมื่อมีการจองใหม่หรือสถานะงานซ่อมเปลี่ยน โดยไม่ต้อง refresh หน้า
   useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0]
     let loaded = { bookings: false, repairs: false, pending: false }
@@ -22,13 +24,24 @@ export default function DashboardPage() {
     const checkLoaded = () => {
       if (loaded.bookings && loaded.repairs && loaded.pending) setLoading(false)
     }
+    const onErr = (label) => (e) => {
+      console.error(label, e)
+      
+      setErr(e.code === 'failed-precondition'
+        ? 'ยังไม่ได้ deploy Firestore index — รัน: firebase deploy --only firestore:indexes'
+        : e.code === 'permission-denied'
+          ? 'ไม่มีสิทธิ์อ่านข้อมูล — ตรวจสอบว่า staff ล็อกอิน Firebase Auth และมี doc staff/{uid}'
+          : 'โหลดข้อมูลไม่สำเร็จ: ' + e.message)
+    }
 
-    //  Real-time: bookings วันนี้
+    
     const unsubBook = onSnapshot(
       query(collection(db,'bookings'), where('date','==',todayStr), orderBy('time')),
       snap => {
         const bookings = snap.docs.map(d => ({id:d.id,...d.data()}))
         setTodayQueue(bookings)
+        // นับ "เสร็จวันนี้" จาก booking ที่ status ถูก sync มาเป็น done แล้ว
+        // (สถานะ booking นี้ถูกอัปเดตมาจาก repairs ผ่านฟังก์ชัน syncBookingStatus ใน lib/notify.js)
         setStats(prev => ({
           ...prev,
           queue: bookings.length,
@@ -36,20 +49,20 @@ export default function DashboardPage() {
         }))
         loaded.bookings = true; checkLoaded()
       },
-      err => { console.error('[Dashboard bookings]', err); loaded.bookings = true; checkLoaded() }
+      e => { onErr('[Dashboard bookings]')(e); loaded.bookings = true; checkLoaded() }
     )
 
-    // Real-time: repairs ที่กำลังซ่อม
+    
     const unsubRepair = onSnapshot(
-      query(collection(db,'repairs'), where('status','in',['waiting','diagnosing','repairing','qc'])),
+      query(collection(db,'repairs'), where('status','in',['waiting','diagnosing','awaiting_approval','repairing','qc'])),
       snap => {
         setStats(prev => ({ ...prev, repairing: snap.size }))
         loaded.repairs = true; checkLoaded()
       },
-      err => { console.error('[Dashboard repairs]', err); loaded.repairs = true; checkLoaded() }
+      e => { onErr('[Dashboard repairs]')(e); loaded.repairs = true; checkLoaded() }
     )
 
-    // Real-time: pending bookings (ล่าสุด 5 รายการ)
+    
     const unsubPending = onSnapshot(
       query(collection(db,'bookings'), where('status','==','pending'), orderBy('createdAt','desc'), limit(5)),
       snap => {
@@ -58,7 +71,7 @@ export default function DashboardPage() {
         setStats(prev => ({ ...prev, pending: snap.size }))
         loaded.pending = true; checkLoaded()
       },
-      err => { console.error('[Dashboard pending]', err); loaded.pending = true; checkLoaded() }
+      e => { onErr('[Dashboard pending]')(e); loaded.pending = true; checkLoaded() }
     )
 
     return () => { unsubBook(); unsubRepair(); unsubPending() }
@@ -77,6 +90,8 @@ export default function DashboardPage() {
         <h1 className="font-syne text-xl font-bold text-t1">Dashboard</h1>
         <p className="text-xs text-t3">{new Date().toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
       </div>
+
+      {err && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim">⚠️ {err}</div>}
 
       {loading ? (
         <div className="flex justify-center pt-20">

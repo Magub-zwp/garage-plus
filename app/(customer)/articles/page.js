@@ -30,7 +30,7 @@ export default function ArticlesPage() {
           </button>
         ))}
       </div>
-        
+
       {loading ? (
         <div className="flex justify-center pt-16"><span className="inline-block w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor:'var(--acc)',borderTopColor:'transparent' }}/></div>
       ) : articles.length === 0 ? (
@@ -44,11 +44,12 @@ export default function ArticlesPage() {
           {articles.map(a => (
             <div key={a.id} className="bg-surf border-token rounded-2xl overflow-hidden cursor-pointer active:opacity-80 flex gap-3 items-center p-3"
               onClick={async () => {
-                
+                // บทความนอก (external) เปิดลิงก์ต้นฉบับในแท็บใหม่, บทความในระบบไปหน้ารายละเอียด
+                // หมายเหตุ: การนับจำนวนอ่าน (read count) ทำที่หน้า [id]/page.js เท่านั้น เพื่อไม่ให้นับซ้ำ
                 if (a.type === 'external' && a.sourceUrl) window.open(a.sourceUrl,'_blank','noopener,noreferrer')
                 else window.location.href = `/articles/${a.id}`
               }}>
-              {/* Thumbnail */}
+              {/* รูป thumbnail ของบทความ ถ้าโหลดรูปไม่ขึ้น (เช่นโดนบล็อก hotlink) จะโชว์ icon แทน */}
               <div className="flex-shrink-0 rounded-xl overflow-hidden relative" style={{ width:72, height:72, background:'var(--s2)' }}>
                 {a.thumbnailUrl ? (
                   <>

@@ -53,7 +53,7 @@ export default function AssignPage() {
     finally { setSaving(prev => ({...prev,[repairId]:false})) }
   }
 
-  // TC-S03: เพิ่มปุ่มลบในหน้ามอบหมายงาน (กรณีรับรถซ้ำ/บันทึกผิด)
+  
   const handleDelete = async (repairId, plate) => {
     if (!confirm(`ลบรายการ "${plate}"?\nใช้เฉพาะกรณีรับรถซ้ำ/บันทึกผิดพลาดเท่านั้น`)) return
     setSaving(prev => ({...prev,[repairId]:true}))

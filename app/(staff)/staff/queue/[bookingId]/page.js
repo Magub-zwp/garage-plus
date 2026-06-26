@@ -45,7 +45,8 @@ export default function BookingDetailPage() {
         updatedAt: serverTimestamp(),
       })
 
-      // TC-S06: เมื่อยืนยันการจอง -> สร้าง repair อัตโนมัติ (ผูก userId) ให้งานไหลเข้าคิวช่าง
+      // เมื่อ staff ยืนยันการจอง ให้สร้าง record งานซ่อม (repairs) ขึ้นมาอัตโนมัติ
+      // พร้อมผูก userId ของลูกค้าไว้ เพื่อให้งานไหลเข้าคิวของช่างต่อโดยอัตโนมัติ
       if (newStatus === 'confirmed') {
         const plate = booking.carPlate || booking.plate || ''
         const dup = await getDocs(query(

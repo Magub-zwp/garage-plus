@@ -9,6 +9,8 @@ import BottomNav from '@/components/customer/BottomNav'
 import { useFCM } from '@/hooks/useFCM'
 import ArticleCard from '@/components/customer/ArticleCard'
 import { useArticles } from '@/hooks/useArticles'
+import { db } from '@/lib/firebase/config'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
 
 export default function HomePage() {
   const { uid }                      = useAuth()
@@ -19,11 +21,23 @@ export default function HomePage() {
   const [carIdx,    setCarIdx]       = useState(0)
   const [slideIdx,  setSlideIdx]     = useState(0)
   const { articles } = useArticles('all', 8)
+  const [unread, setUnread] = useState(0)
   const trackRef = useRef(null)
   const timerRef = useRef(null)
 
+  // ฟังการแจ้งเตือนแบบ real-time เพื่อนับจำนวนที่ยังไม่อ่าน แล้วโชว์เป็นตัวเลข badge บนไอคอนกระดิ่ง
+  useEffect(() => {
+    if (!uid) return
+    const unsub = onSnapshot(
+      query(collection(db,'notifications'), where('userId','==',uid), where('unread','==',true)),
+      snap => setUnread(snap.size),
+      err => console.warn('[home unread]', err.message)
+    )
+    return () => unsub()
+  }, [uid])
 
-  
+
+  // เริ่มตัวจับเวลาเลื่อนสไลด์อัตโนมัติ — เคลียร์ interval เก่าก่อนเสมอ ป้องกันมี interval ซ้อนกันหลายตัว
   const startTimer = useCallback(() => {
     clearInterval(timerRef.current)
     if (articles.length === 0) return
@@ -62,6 +76,12 @@ export default function HomePage() {
         <Link href="/notifications"
           className="relative w-9 h-9 bg-surf rounded-full flex items-center justify-center border-token">
           <span className="text-base">🔔</span>
+          {unread > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-bold text-white"
+              style={{ background:'var(--acc)', fontSize:9, border:'1.5px solid var(--surf)' }}>
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
         </Link>
       </header>
 
@@ -83,7 +103,7 @@ export default function HomePage() {
         </Link>
       ) : (
         <div className="mx-4 mb-2 bg-surf rounded-3xl p-4 border-token relative overflow-hidden">
-          <div className="absolute -bottom-8 -right-8 w-24 h-24 rounded-full" style={{ background: 'var(--adim)' }} />
+          <div className="absolute -bottom-8 -right-8 w-24 h-24 rounded-full pointer-events-none" style={{ background: 'var(--adim)', zIndex: 0 }} />
           <div className="flex justify-between items-start mb-1">
             <p className="text-t3 text-xs uppercase tracking-widest">รถของฉัน</p>
             {cars.length > 1 && (
@@ -155,7 +175,7 @@ export default function HomePage() {
       {/* Articles */}
       <div className="section-header mb-2">
         <span className="section-title">บทความ & ข่าวสาร</span>
-        <span className="section-link">ดูทั้งหมด</span>
+        <Link href="/articles" className="section-link">ดูทั้งหมด</Link>
       </div>
       {articles.length === 0 ? (
         <div className="px-4 mb-4 text-center py-6 rounded-2xl mx-4"
@@ -172,12 +192,16 @@ export default function HomePage() {
             if (i !== slideIdx) { setSlideIdx(i); resetTimer() }
           }}>
           {articles.map((a, idx) => (
-            <div key={a.id || idx}
+            <Link key={a.id || idx} href={a.id ? `/articles/${a.id}` : '/articles'}
               className="bg-surf rounded-2xl border-token overflow-hidden flex-shrink-0 cursor-pointer"
               style={{ minWidth: 208, scrollSnapAlign: 'start' }}>
-              <div className="h-20 flex items-center justify-center relative"
+              <div className="h-20 flex items-center justify-center relative overflow-hidden"
                 style={{ background: a.bg || 'var(--s2)' }}>
-                <span style={{ fontSize: 28 }}>{a.icon}</span>
+                {a.thumbnailUrl
+                  ? <img src={a.thumbnailUrl} alt={a.title || ''} loading="lazy"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                  : <span style={{ fontSize: 28 }}>{a.icon || '📰'}</span>}
                 <div className="absolute top-2 left-2 text-white text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
                   style={{ background: 'var(--acc)', fontSize: 9 }}>{a.cat || a.category}</div>
               </div>
@@ -188,7 +212,7 @@ export default function HomePage() {
                   <span className="text-xs text-acc font-bold">อ่านต่อ →</span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

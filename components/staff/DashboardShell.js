@@ -5,7 +5,8 @@ import { getSession } from '@/lib/staff/session'
 import Topbar  from '@/components/staff/Topbar'
 import Sidebar from '@/components/staff/Sidebar'
 
-//sidebar 
+// โครงหน้าหลักของฝั่ง staff: มี sidebar ที่ย่อ/ขยายได้บน desktop และเปิดเป็น drawer บนมือถือ
+// ตรวจ session/role ก่อนแสดงเนื้อหา และจัดการ dark mode
 export default function DashboardShell({ children, requiredRole }) {
   const router = useRouter()
   const [user,        setUser]        = useState(null)
@@ -72,27 +73,21 @@ export default function DashboardShell({ children, requiredRole }) {
           />
         )}
 
-        {/* Sidebar — mobile: fixed drawer, desktop: inline */}
+        {/* Sidebar แบบ drawer สำหรับมือถือ — render เฉพาะหน้าจอเล็ก (lg:hidden) เท่านั้น
+            เพื่อไม่ให้ sidebar ถูก mount ซ้ำสองชุดพร้อมกัน (ซึ่งจะทำให้ realtime listener ซ้ำซ้อนไปด้วย) */}
         <div
-          className="lg:relative fixed z-30 h-full"
+          className="lg:hidden fixed z-30 h-full"
           style={{
             transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
             transition: 'transform .2s ease',
           }}
         >
-          {/* Desktop: ปกติ inline ไม่ต้อง transform */}
-          <div className="hidden lg:block h-full">
-            <Sidebar role={user.role} collapsed={collapsed} />
-          </div>
-          {/* Mobile: drawer */}
-          <div className="lg:hidden h-full">
-            <Sidebar role={user.role} collapsed={false} onClose={() => setMobileOpen(false)} />
-          </div>
+          <Sidebar role={user.role} collapsed={false} uid={user.uid} onClose={() => setMobileOpen(false)} />
         </div>
 
-        {/* Desktop sidebar (inline, visible เสมอ) */}
+        {/* Desktop sidebar (inline, แสดงเสมอ) — instance เดียว */}
         <div className="hidden lg:block h-full flex-shrink-0" style={{ width: collapsed ? 52 : 176, transition:'width .2s ease' }}>
-          <Sidebar role={user.role} collapsed={collapsed} />
+          <Sidebar role={user.role} collapsed={collapsed} uid={user.uid} />
         </div>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-5 bg-tok">{children}</main>

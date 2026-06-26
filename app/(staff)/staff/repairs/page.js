@@ -17,11 +17,11 @@ export default function RepairsPage() {
   const [done,      setDone]      = useState(new Set())
   const [itemName,  setItemName]  = useState('')
   const [qty,       setQty]       = useState('')
-  const [note,      setNote]      = useState('')   // TC-X03: บันทึกจริง
+  const [note,      setNote]      = useState('')   // โน้ตที่ admin กรอก จะถูกบันทึกลง Firestore จริงตอนกดบันทึก
   const [saving,    setSaving]    = useState(false)
   const [msg,       setMsg]       = useState('')
   const [loading,   setLoading]   = useState(true)
-  const [err,       setErr]       = useState('')   // TC-X02
+  const [err,       setErr]       = useState('')   // ข้อความ error ที่จะแสดงให้ผู้ใช้เห็น
   const [showCreate, setShowCreate] = useState(false)
   const [newRepair,  setNewRepair]  = useState({ bookingId:'', plate:'', carName:'', mechanicName:'', jobDetail:'' })
   const [creating,   setCreating]   = useState(false)
@@ -73,7 +73,7 @@ export default function RepairsPage() {
     setItemName(''); setQty(''); setNote(''); setMsg('')
   }
 
-  // TC-S01: ทีละขั้น ห้ามย้อน ห้ามข้าม
+  // สลับสถานะของขั้นตอนซ่อม: กดได้แค่ "ขั้นถัดไป" ทีละขั้น ห้ามย้อนขั้นที่ผ่านไปแล้ว และห้ามข้ามขั้น
   const toggleStep = (i) => {
     if (!repair) return
     const currentIdx = statusIndex(repair.status)
@@ -102,14 +102,15 @@ export default function RepairsPage() {
       const updates = {
         status:    newStatus,
         updatedAt: serverTimestamp(),
-        timeline:  arrayUnion({ status: newStatus, at: Date.now(), by: 'admin', note: note || '' }), // TC-X04
+        // เก็บประวัติการเปลี่ยนสถานะไว้ใน timeline ทุกครั้งที่บันทึก
+        timeline:  arrayUnion({ status: newStatus, at: Date.now(), by: 'admin', note: note || '' }),
       }
-      if (itemName) updates.proposedJobs = arrayUnion({ name: itemName, qty: parseInt(qty) || 1 }) // ไม่มีราคา
+      if (itemName) updates.proposedJobs = arrayUnion({ name: itemName, qty: parseInt(qty) || 1 }) // ไม่มีราคา (ตัดออกตามขอบเขต)
       if (note) updates.lastNote = note
 
       await updateDoc(doc(db, 'repairs', repair.id), updates)
-      await notifyRepairStatus({ ...repair }, newStatus)   // TC-S02/C09
-      await syncBookingStatus(repair.bookingId, newStatus) // TC-S08
+      await notifyRepairStatus({ ...repair }, newStatus)   // แจ้งเตือนลูกค้าจริง (เขียน notification doc)
+      await syncBookingStatus(repair.bookingId, newStatus) // sync สถานะกลับไปที่ booking ให้ dashboard/คิวนับถูก
 
       setRepair(prev => ({ ...prev, status: newStatus }))
       setRepairs(prev => prev.map(r => r.id === repair.id ? { ...r, status: newStatus } : r))
@@ -122,7 +123,8 @@ export default function RepairsPage() {
     }
   }
 
-  // TC-S06 + TC-C11: duplicate check + เก็บ entryTime + ผูก userId จาก booking
+  // สร้างงานซ่อมใหม่ด้วยมือ: เช็คทะเบียนซ้ำในคิวที่กำลังดำเนินการก่อน, บันทึกเวลารับรถ (entryTime),
+  // และผูก userId ของลูกค้าจาก booking ถ้ามี (จำเป็นเพื่อให้ลูกค้าเห็นสถานะ/ได้รับแจ้งเตือน)
   const handleCreateRepair = async () => {
     if (!newRepair.plate.trim()) { setCreateMsg('กรุณากรอกทะเบียนรถ'); return }
     setCreating(true); setCreateMsg('')
@@ -146,7 +148,7 @@ export default function RepairsPage() {
         approval:   { state: 'none', approvedBy: null, approvedAt: null, note: '' },
         timeline:   [{ status: 'waiting', at: Date.now(), by: 'admin', note: 'รับรถเข้าอู่' }],
         proposedJobs: [],
-        entryTime:  serverTimestamp(),   // TC-C11
+        entryTime:  serverTimestamp(),   // เวลาที่รับรถเข้าอู่
         createdAt:  serverTimestamp(),
         updatedAt:  serverTimestamp(),
       }
@@ -160,7 +162,7 @@ export default function RepairsPage() {
         } catch {}
       }
       if (!repairData.userId) {
-        // เตือน: ถ้าไม่ผูก userId ลูกค้าจะไม่เห็นสถานะ/แจ้งเตือน (TC-S01 root cause)
+        // เตือนไว้ใน log: ถ้าไม่มี userId ผูกกับงานซ่อมนี้ ลูกค้าจะไม่เห็นสถานะหรือได้รับแจ้งเตือนใดๆ
         console.warn('[handleCreateRepair] ไม่มี userId — ลูกค้าจะไม่เห็นสถานะนี้')
       }
       await addDoc(collection(db, 'repairs'), repairData)

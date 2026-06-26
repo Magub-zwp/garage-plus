@@ -6,14 +6,16 @@ import { db } from '@/lib/firebase/config'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import { useAuthContext } from '@/context/AuthContext'
 
-function useUnreadCount() {
-  const { uid } = useAuthContext()
+function useUnreadCount(uidProp) {
+  const ctx = useAuthContext() || {}
+  const uid = uidProp || ctx.uid   // ใช้ uid ที่ส่งมาทาง prop ก่อน ถ้าไม่มีค่อย fallback ไปใช้ uid จาก AuthContext
   const [count, setCount] = useState(0)
   useEffect(() => {
     if (!uid) return
     const unsub = onSnapshot(
       query(collection(db,'notifications'), where('userId','==',uid), where('unread','==',true)),
-      snap => setCount(snap.size)
+      snap => setCount(snap.size),
+      err => console.warn('[unread]', err.message)
     )
     return () => unsub()
   }, [uid])
@@ -45,10 +47,10 @@ const MECH_NAV = [
   { id:'staff/notifications', icon:'🔔', label:'แจ้งเตือน', dynamic:true },
 ]
 
-//Sidebar รองรับ collapsed state สำหรับ desktop
-export default function Sidebar({ role, collapsed, onClose }) {
+// เมนูด้านข้างของฝั่ง staff — เปลี่ยนรายการเมนูตาม role (admin/ช่าง) และรองรับสถานะย่อ (collapsed) บน desktop
+export default function Sidebar({ role, collapsed, onClose, uid }) {
   const pathname    = usePathname()
-  const unreadCount = useUnreadCount()
+  const unreadCount = useUnreadCount(uid)
   const nav     = role === 'admin' ? ADMIN_NAV : MECH_NAV
   const isAdmin = role === 'admin'
   const isActive = (id) => pathname === `/${id}` || pathname.startsWith(`/${id}/`)

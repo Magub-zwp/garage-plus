@@ -14,10 +14,12 @@ export default function QueuePage() {
   const [bookings, setBookings] = useState([])
   const [loading,  setLoading]  = useState(true)
   const [filter,   setFilter]   = useState('all')
+  const [err,      setErr]      = useState('')
 
-  
+  // ใช้ onSnapshot ฟังข้อมูลแบบ real-time แทนการ fetch ครั้งเดียวด้วย getDocs
+  // เพื่อให้รายการคิวอัปเดตทันทีเมื่อมีการจองใหม่หรือสถานะเปลี่ยน
   useEffect(() => {
-    setLoading(true)
+    setLoading(true); setErr('')
     const q = query(
       collection(db, 'bookings'),
       where('date', '==', date),
@@ -28,7 +30,15 @@ export default function QueuePage() {
         setBookings(snap.docs.map(d => ({ id: d.id, ...d.data() })))
         setLoading(false)
       },
-      err => { console.error('[Queue onSnapshot]', err); setLoading(false) }
+      e => {
+        console.error('[Queue onSnapshot]', e)
+        setErr(e.code === 'failed-precondition'
+          ? 'ยังไม่ได้ deploy Firestore index (bookings: date+time)'
+          : e.code === 'permission-denied'
+            ? 'ไม่มีสิทธิ์อ่านข้อมูล — ตรวจสอบการล็อกอิน staff'
+            : 'โหลดข้อมูลไม่สำเร็จ')
+        setLoading(false)
+      }
     )
     return () => unsub()
   }, [date])
@@ -78,6 +88,8 @@ export default function QueuePage() {
           </button>
         ))}
       </div>
+
+      {err && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim">⚠️ {err}</div>}
 
       {loading ? (
         <div className="flex justify-center pt-16">

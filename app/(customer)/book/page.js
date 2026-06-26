@@ -25,7 +25,8 @@ export default function BookPage() {
   const [viewYear,  setViewYear]  = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
 
-  
+  // เวลา 00:00 ของวันนี้ ใช้เทียบว่าวันที่เลือกผ่านไปแล้วหรือยัง (คำนวณครั้งเดียวด้วย useMemo
+  // กันไม่ให้ต้องสร้าง Date object ใหม่ทุกครั้งที่ component re-render)
   const todayMidnight = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -88,18 +89,18 @@ export default function BookPage() {
     setSelectedDate(null)
   }
 
-  
+  // เช็คว่าวันนั้นกดเลือกไม่ได้หรือไม่ (ตรงกับวันหยุดประจำสัปดาห์ หรือเป็นวันที่ผ่านมาแล้ว)
   const isDayDisabled = (day) => {
     const dayOfWeek = (firstDayOfMonth + day - 1) % 7
     const d = new Date(viewYear, viewMonth, day)
     d.setHours(0, 0, 0, 0)
     return OFF_DAYS.includes(dayOfWeek) || d < todayMidnight
   }
-  
+
   const toggleService = (s) => {
     setServices((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
   }
-  
+
   const handleConfirm = async () => {
     if (!selectedDate) { setError('กรุณาเลือกวันที่'); return }
     if (!selectedTime) { setError('กรุณาเลือกช่วงเวลา'); return }
@@ -207,8 +208,10 @@ export default function BookPage() {
             <div className="grid grid-cols-4 gap-2 px-4 mb-3">
               {TIME_SLOTS.map((t) => {
                 const s       = slotData[t]
-                const isFull  = s ? s.isFull : false
-                const isAvail = s ? !s.isFull : true
+                // ถ้า API ไม่ได้ส่ง isFull มาตรงๆ ให้คำนวณเองจากจำนวนที่จองแล้ว/จำนวนรับสูงสุด
+                // เพื่อกันไม่ให้ลูกค้าจองคิวที่เต็มแล้วซ้ำ
+                const isFull  = s ? (s.isFull ?? (s.max != null && s.booked != null ? s.booked >= s.max : false)) : false
+                const isAvail = !isFull
                 const isSel   = selectedTime === t
                 return (
                   <button key={t} disabled={isFull}

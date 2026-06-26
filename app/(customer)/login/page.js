@@ -18,7 +18,8 @@ export default function LoginPage() {
   const [form,    setForm]    = useState({ email: '', password: '' })
   const redirectTimerRef = useRef(null)
 
-  // รับ LINE custom token จาก callback URL
+  // รับ LINE custom token ที่ callback URL ส่งกลับมา แล้วตรวจสอบ state เทียบกับที่บันทึกไว้
+  // ก่อนหน้านี้ (CSRF check) เพื่อกันไม่ให้ใช้ token จากคนละ session
   useEffect(() => {
     const lineToken    = params.get('lineToken')
     const returnState  = params.get('state')
@@ -70,17 +71,30 @@ export default function LoginPage() {
     } finally { setLoading(false) }
   }
 
-  // loginwithGoogle
+  // เช็คว่ากำลังเข้าเว็บผ่าน origin ที่ไม่ปลอดภัยอยู่หรือไม่ (เช่น http://<LAN-IP>:3000)
+  // เพราะ origin แบบนี้จะทำให้ Google/LINE OAuth ล้ม (redirect_uri / authorized domain ไม่ตรงที่ลงทะเบียนไว้)
+  // ใช้เช็คก่อนเริ่ม flow login เพื่อเตือนผู้ใช้ให้ชัดเจนแทนที่จะปล่อยให้ login ล้มแบบงงๆ
+  const isUnsafeOrigin = () =>
+    typeof window !== 'undefined' &&
+    location.protocol === 'http:' &&
+    !['localhost', '127.0.0.1'].includes(location.hostname)
+
+  // ตั้ง timeout ไว้สำรอง เผื่อ redirect กลับจาก Google ถูกบล็อกบนมือถือ (เช่น popup/redirect ไม่ทำงาน)
+  // ถ้าครบเวลาแล้วยังไม่มี user กลับมา จะตัด loading แล้วแจ้ง error ให้ผู้ใช้รู้ ไม่ปล่อยให้หน้าค้าง
   const handleGoogle = async () => {
     setError(''); setLoading(true)
     clearTimeout(redirectTimerRef.current)
+    if (isUnsafeOrigin()) {
+      setLoading(false)
+      setError(`Google ใช้ไม่ได้บน ${location.host} — ต้องเข้าผ่าน localhost หรือโดเมน HTTPS (Vercel) ที่เพิ่มไว้ใน Firebase Authorized domains`)
+      return
+    }
     try {
       const user = await loginWithGoogle()
       if (user) {
         const route = await getDefaultRoute(user.uid)
         router.replace(route)
       } else {
-        // mobile: กำลัง redirect — reset loading ถ้า 6 วิยังไม่ redirect
         redirectTimerRef.current = setTimeout(() => {
           setLoading(false)
           setError('Google Sign-In ใช้งานไม่ได้บน IP/port นี้ กรุณาเพิ่ม Authorized domain ใน Firebase Console')
@@ -92,11 +106,17 @@ export default function LoginPage() {
     }
   }
 
-  
+  // สร้างและบันทึก state แบบสุ่มไว้ใน sessionStorage ก่อน redirect ไป LINE
+  // เพื่อใช้ตรวจสอบ (CSRF protection) ตอนรับ callback กลับมาว่าเป็น request ที่เราเริ่มเองจริง
   const handleLine = () => {
     const channelId = process.env.NEXT_PUBLIC_LINE_CHANNEL_ID
     if (!channelId || channelId === '1234567890') {
       setError('LINE Login ยังไม่ได้ตั้งค่า (NEXT_PUBLIC_LINE_CHANNEL_ID)')
+      return
+    }
+    if (isUnsafeOrigin()) {
+      // redirect_uri จะกลายเป็น http://<LAN-IP>/... ซึ่งไม่ตรงกับ Callback URL ใน LINE Console
+      setError(`LINE Login ใช้ไม่ได้บน ${location.host} — Callback URL ต้องตรงกับที่ลงทะเบียนใน LINE Console (ใช้โดเมน HTTPS/Vercel)`)
       return
     }
     const state = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
@@ -107,7 +127,7 @@ export default function LoginPage() {
       `&state=${state}&scope=profile%20openid`
     window.location.href = url
   }
-  
+
   return (
     <div className="min-h-screen bg-token flex flex-col justify-center px-5 py-8">
       <div className="flex items-center gap-3 mb-7">

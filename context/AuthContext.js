@@ -6,6 +6,8 @@ import { listenUser } from '@/lib/firebase/firestore'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
+  // firebaseUser = object จาก Firebase Auth (มีแค่ uid, email, displayName)
+  // userDoc      = ข้อมูลเพิ่มเติมจาก Firestore (ชื่อ, เบอร์, แต้มสะสม, การตั้งค่า ฯลฯ)
   const [firebaseUser, setFirebaseUser] = useState(undefined)
   const [userDoc, setUserDoc]           = useState(null)
   const [loading, setLoading]           = useState(true)
@@ -14,11 +16,11 @@ export function AuthProvider({ children }) {
     let unsubUser = null
 
     const init = async () => {
-      // รอ Google redirect result ก่อนเสมอ
-      // ถ้าไม่ได้มาจาก Google redirect → resolve null ทันที
+      // ต้องรอรับผล Google redirect ก่อนเสมอ (mobile ใช้ redirect แทน popup)
+      // ถ้าไม่ได้มาจาก Google redirect จะ resolve null ทันที ไม่มีผลอะไร
       await handleGoogleRedirect().catch(() => {})
 
-      // safety timeout
+      // ป้องกันหน้าค้าง loading ตลอดไปถ้า Firebase ไม่ตอบภายใน 5 วินาที
       const timeout = setTimeout(() => setLoading(false), 5000)
 
       const unsubAuth = onAuthChange(async (fbUser) => {
@@ -31,6 +33,7 @@ export function AuthProvider({ children }) {
           return
         }
 
+        // ล้าง listener เก่าก่อน แล้วฟัง userDoc ของ uid ใหม่แบบ real-time
         if (unsubUser) unsubUser()
         unsubUser = listenUser(fbUser.uid, (doc) => {
           setUserDoc(doc)
@@ -51,6 +54,7 @@ export function AuthProvider({ children }) {
     return () => cleanup()
   }, [])
 
+  // ค่าที่ทุก component ใต้ AuthProvider เข้าถึงได้ผ่าน useAuthContext()
   const value = {
     firebaseUser,
     userDoc,

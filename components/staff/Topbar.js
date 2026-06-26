@@ -8,14 +8,16 @@ import { db } from '@/lib/firebase/config'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import { useAuthContext } from '@/context/AuthContext'
 
-function NotifBadge() {
-  const { uid } = useAuthContext()
+function NotifBadge({ uid: uidProp }) {
+  const ctx = useAuthContext() || {}
+  const uid = uidProp || ctx.uid
   const [count, setCount] = useState(0)
   useEffect(() => {
     if (!uid) return
     const unsub = onSnapshot(
       query(collection(db,'notifications'), where('userId','==',uid), where('unread','==',true)),
-      snap => setCount(snap.size)
+      snap => setCount(snap.size),
+      err => console.warn('[notif]', err.message)
     )
     return () => unsub()
   }, [uid])
@@ -34,7 +36,8 @@ function NotifBadge() {
   )
 }
 
-// onToggleCollapsed (desktop) และ onToggleMobile (mobile hamburger)
+// แถบด้านบนของหน้า staff — มีปุ่มย่อ/ขยาย sidebar (desktop, ผ่าน onToggleCollapsed)
+// และปุ่ม hamburger เปิดเมนูบนมือถือ (ผ่าน onToggleMobile)
 export default function Topbar({ user, onToggleMode, isDark, onToggleCollapsed, onToggleMobile }) {
   const router = useRouter()
   const handleLogout = async () => {
@@ -88,7 +91,7 @@ export default function Topbar({ user, onToggleMode, isDark, onToggleCollapsed, 
           style={{ background:'var(--s2)', border:'0.5px solid var(--brd2)' }}>
           {isDark ? '☀️' : '🌙'}
         </button>
-        <NotifBadge />
+        <NotifBadge uid={user?.uid} />
         <div className="w-8 h-8 flex items-center justify-center font-syne font-extrabold text-white rounded-full text-xs flex-shrink-0"
           style={{ background:'var(--acc)' }}>
           {initials}

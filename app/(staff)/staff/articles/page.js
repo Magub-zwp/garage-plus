@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-// FIX BUG-008: import useSearchParams เพื่อ trigger refetch เมื่อกลับมาจาก new article
+// useSearchParams ทำให้ component re-render เมื่อ URL เปลี่ยน
+// จึงใช้ trigger refetch รายการบทความโดยอัตโนมัติหลังกลับมาจากหน้าสร้างบทความใหม่
 import { useSearchParams } from 'next/navigation'
 import DashboardShell from '@/components/staff/DashboardShell'
 import Link from 'next/link'

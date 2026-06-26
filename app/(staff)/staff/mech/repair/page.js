@@ -16,11 +16,11 @@ export default function MechRepairPage() {
   const [done,     setDone]     = useState(new Set())
   const [item,     setItem]     = useState('')
   const [qty,      setQty]      = useState('')
-  const [note,     setNote]     = useState('')   // TC-X03: note จะถูกบันทึกจริง
+  const [note,     setNote]     = useState('')   // โน้ตที่ช่างกรอก จะถูกบันทึกลง Firestore จริงตอนกดบันทึก
   const [saving,   setSaving]   = useState(false)
   const [msg,      setMsg]      = useState('')
   const [loading,  setLoading]  = useState(true)
-  const [err,      setErr]      = useState('')   // TC-X02: surface error
+  const [err,      setErr]      = useState('')   // ข้อความ error ที่จะแสดงให้ผู้ใช้เห็น
 
   const loadRepair = () => {
     if (!repairId) { setLoading(false); return }
@@ -37,7 +37,7 @@ export default function MechRepairPage() {
   }
   useEffect(loadRepair, [repairId])
 
-  // TC-S01: ทำทีละขั้น ห้ามย้อน ห้ามข้าม
+  // สลับสถานะของขั้นตอนซ่อม: กดได้แค่ "ขั้นถัดไป" ทีละขั้น ห้ามย้อนขั้นที่ผ่านไปแล้ว และห้ามข้ามขั้น
   const toggleStep = (i) => {
     if (!repair) return
     const currentIdx = statusIndex(repair.status)
@@ -68,7 +68,8 @@ export default function MechRepairPage() {
       const updates = {
         status:    newStatus,
         updatedAt: serverTimestamp(),
-        timeline:  arrayUnion({ status: newStatus, at: Date.now(), by: 'mechanic', note: note || '' }), // TC-X04
+        // เก็บประวัติการเปลี่ยนสถานะไว้ใน timeline ทุกครั้งที่บันทึก
+        timeline:  arrayUnion({ status: newStatus, at: Date.now(), by: 'mechanic', note: note || '' }),
       }
       // เก็บเฉพาะชื่อ+จำนวน (ตัดราคาออกตามขอบเขต v.นี้)
       if (item) updates.proposedJobs = arrayUnion({ name: item, qty: parseInt(qty) || 1 })
@@ -76,9 +77,9 @@ export default function MechRepairPage() {
 
       await updateDoc(doc(db, 'repairs', repair.id), updates)
 
-      // TC-S01/C09: แจ้งเตือนลูกค้า (เขียน notification doc จริง)
+      // แจ้งเตือนลูกค้าจริง (เขียน notification doc ลง Firestore)
       await notifyRepairStatus({ ...repair }, newStatus)
-      // TC-S08: sync สถานะ booking ให้ dashboard/คิวนับถูก
+      // sync สถานะนี้กลับไปที่ booking ด้วย เพื่อให้หน้า dashboard/คิวของ staff นับตัวเลขถูกต้อง
       await syncBookingStatus(repair.bookingId, newStatus)
 
       setRepair(prev => ({ ...prev, status: newStatus }))
@@ -93,7 +94,8 @@ export default function MechRepairPage() {
     } finally { setSaving(false) }
   }
 
-  // TC-S01 + consent: ส่งงานให้ลูกค้าอนุมัติ (ตั้ง awaiting_approval + approval.pending)
+  // ส่งคำขออนุมัติให้ลูกค้า: เปลี่ยนสถานะเป็น "รออนุมัติ" และตั้ง approval เป็น pending
+  // จะซ่อมต่อไม่ได้จนกว่าลูกค้าจะกดยินยอม (consent gate)
   const handleRequestApproval = async () => {
     if (!repair) return
     setSaving(true); setMsg('')
