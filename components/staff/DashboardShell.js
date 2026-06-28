@@ -30,7 +30,7 @@ export default function DashboardShell({ children, requiredRole }) {
     const savedCollapsed = localStorage.getItem('gp_sidebar_collapsed') === '1'
     setCollapsed(savedCollapsed)
     setReady(true)
-  }, [])
+  }, [requiredRole, router])   // ใส่ deps ให้ครบ กัน stale role/router
 
   const toggleMode = () => {
     const next = !isDark

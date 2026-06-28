@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, getDocs } from 'firebase/firestore'
+import { authFetch } from '@/lib/api/authFetch'
 
 const ROLE_LABEL = { admin:'👑 แอดมิน', mechanic:'🔧 ช่างซ่อม' }
 const EMPTY = { name:'', email:'', password:'', role:'mechanic' }
@@ -38,9 +39,8 @@ export default function EmployeesPage() {
     }
     setSaving(true); setMsg('')
     try {
-      const res = await fetch('/api/staff/create', {
+      const res = await authFetch('/api/staff/create', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ name:form.name.trim(), email:form.email.trim(), password:form.password, role:form.role }),
       })
       const data = await res.json()
@@ -57,9 +57,8 @@ export default function EmployeesPage() {
   const handleDelete = async (uid, name) => {
     if (!confirm(`ลบ ${name}? บัญชี Firebase Auth จะถูกลบด้วย`)) return
     try {
-      const res = await fetch('/api/staff/delete', {
+      const res = await authFetch('/api/staff/delete', {
         method:  'DELETE',
-        headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ uid }),
       })
       const data = await res.json()

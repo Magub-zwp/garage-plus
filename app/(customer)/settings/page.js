@@ -168,7 +168,7 @@ export default function SettingsPage() {
                       const cred = EmailAuthProvider.credential(user.email, deletePassword)
                       await reauthenticateWithCredential(user, cred)
                     }
-                    await deleteAllUserData(uid)
+                    await deleteAllUserData()
                     router.replace('/login')
                   } catch(e) {
                     if (['auth/wrong-password','auth/invalid-credential'].includes(e.code))

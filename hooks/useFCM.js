@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAuthContext } from '@/context/AuthContext'
 import { updateUserDocument } from '@/lib/firebase/firestore'
 
@@ -9,12 +9,11 @@ import { updateUserDocument } from '@/lib/firebase/firestore'
  */
 export function useFCM() {
   const { uid, userDoc } = useAuthContext()
+  const unsubscribeRef = useRef(null)   // เก็บ unsubscribe ของ onMessage ไว้ cleanup
 
   useEffect(() => {
     if (!uid || typeof window === 'undefined') return
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return
-
-    // ขอ permission เฉพาะถ้ายังไม่เคยขอ
     if (Notification.permission === 'denied') return
 
     const initFCM = async () => {
@@ -22,8 +21,7 @@ export function useFCM() {
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') return
 
-        // Lazy import Firebase Messaging (client-only)
-        const { getMessaging, getToken } = await import('firebase/messaging')
+        const { getMessaging, getToken, onMessage } = await import('firebase/messaging')
         const messaging = getMessaging()
 
         const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
@@ -37,30 +35,26 @@ export function useFCM() {
           console.warn('[useFCM] getToken คืนค่า null — ตรวจสอบ VAPID key และ SW registration')
           return
         }
+        if (token !== userDoc?.fcmToken) await updateUserDocument(uid, { fcmToken: token })
 
-        // บันทึก token ถ้าเปลี่ยนแปลง
-        if (token !== userDoc?.fcmToken) {
-          await updateUserDocument(uid, { fcmToken: token })
-        }
-
-        // รับ notification เมื่อแอพเปิดอยู่ (foreground)
-        const { onMessage } = await import('firebase/messaging')
-        onMessage(messaging, (payload) => {
+        // ลงทะเบียน listener เพียงตัวเดียว — กันลงซ้ำ (เหตุของแจ้งเตือนเบิ้ล) เมื่อ effect รันใหม่
+        if (unsubscribeRef.current) unsubscribeRef.current()
+        unsubscribeRef.current = onMessage(messaging, (payload) => {
           const { title, body } = payload.notification || {}
           if (title && body && Notification.permission === 'granted') {
-            new Notification(title, {
-              body,
-              icon: '/icon-192.png',
-              badge: '/icon-72.png',
-            })
+            new Notification(title, { body, icon: '/icon-192.png', badge: '/icon-72.png' })
           }
         })
       } catch (err) {
-        // Silent fail — FCM ไม่ใช่ฟีเจอร์บังคับ
-        console.warn('[useFCM]', err.message)
+        console.warn('[useFCM]', err.message)   // FCM ไม่ใช่ฟีเจอร์บังคับ
       }
     }
 
     initFCM()
+
+    // cleanup: ยกเลิก listener เมื่อ unmount หรือ uid เปลี่ยน
+    return () => {
+      if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null }
+    }
   }, [uid])
 }

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
-import { createBooking } from '@/lib/firebase/firestore'
+import { authFetch } from '@/lib/api/authFetch'
 import BottomNav from '@/components/customer/BottomNav'
 
 const DAYS_TH     = ['อา','จ','อ','พ','พฤ','ศ','ส']
@@ -108,18 +108,24 @@ export default function BookPage() {
     if (!selectedCar) { setError('กรุณาเพิ่มรถก่อนทำการจอง'); return }
     setError(''); setSubmitting(true)
     try {
-      const bookingId = await createBooking(uid, {
-        date:         selectedDate,
-        time:         selectedTime,
-        carId:        selectedCar.id,
-        carPlate:     selectedCar.plate,
-        carName:      `${selectedCar.brand} ${selectedCar.model} ${selectedCar.year}`,
-        customerName: user?.name || '',
-        serviceType:  services,
-        pickupType,
-        note,
+      // จองผ่าน server (Admin SDK + transaction) — กัน race condition และไม่เชื่อ userId จาก client
+      const res = await authFetch('/api/bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          date:         selectedDate,
+          time:         selectedTime,
+          carId:        selectedCar.id,
+          carPlate:     selectedCar.plate,
+          carName:      `${selectedCar.brand} ${selectedCar.model} ${selectedCar.year}`,
+          customerName: user?.name || '',
+          serviceType:  services,
+          pickupType,
+          note,
+        }),
       })
-      router.push(`/book/success?id=${bookingId}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'ERROR')
+      router.push(`/book/success?id=${data.bookingId}`)
     } catch (e) {
       if (e.message === 'SLOT_FULL') setError('ขออภัย คิวนี้เต็มแล้ว กรุณาเลือกเวลาอื่น')
       else setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')

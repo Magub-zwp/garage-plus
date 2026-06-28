@@ -30,16 +30,10 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // TC-X09: ป้องกันการป่วนคิว — ห้ามแก้ max, ห้ามลดจำนวน booked, แก้ได้เฉพาะ booked/updatedAt
+    // slots: จอง/คืนคิวทำผ่าน server (/api/bookings) ด้วย Admin SDK เท่านั้น — client เขียนตรงไม่ได้
     match /slots/{date} {
-      allow read:   if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null
-                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['booked','updatedAt'])
-                       && request.resource.data.booked is int
-                       && request.resource.data.booked >= resource.data.booked
-                       && request.resource.data.booked <= resource.data.max;
-      allow delete: if isAdmin();
+      allow read:  if request.auth != null;
+      allow write: if false;
     }
 
     match /notifications/{notifId} {

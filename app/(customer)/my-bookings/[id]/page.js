@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { BOOKING_STATUS_LABEL } from '@/hooks/useBookings'
-import { getBooking, cancelBooking } from '@/lib/firebase/firestore'
+import { getBooking } from '@/lib/firebase/firestore'
+import { authFetch } from '@/lib/api/authFetch'
 import BottomNav from '@/components/customer/BottomNav'
 
 export default function BookingDetailPage({ params }) {
@@ -20,18 +21,25 @@ export default function BookingDetailPage({ params }) {
   const [error,      setError]      = useState('')
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !uid) return
     getBooking(id)
-      .then(b => { setBooking(b); setLoading(false) })
+      // กันเปลี่ยน URL ไปดูคิวคนอื่น: ถ้าไม่ใช่เจ้าของให้ถือว่าไม่พบ
+      .then(b => { setBooking(b && b.userId === uid ? b : null); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [id])
+  }, [id, uid])
 
   const canCancel = booking && ['pending','confirmed'].includes(booking.status)
-  
+
   const handleCancel = async () => {
     setCancelling(true); setError('')
     try {
-      await cancelBooking(id, cancelReason)
+      // ยกเลิกผ่าน server (Admin SDK) — คืน slot แบบ atomic และเช็คความเป็นเจ้าของ
+      const res = await authFetch(`/api/bookings/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'cancel', reason: cancelReason }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'ERROR')
       setShowConfirm(false)
       setBooking(prev => ({ ...prev, status:'cancelled' }))
     } catch(e) {

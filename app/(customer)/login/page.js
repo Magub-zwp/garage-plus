@@ -21,7 +21,7 @@ export default function LoginPage() {
   // รับ LINE custom token ที่ callback URL ส่งกลับมา แล้วตรวจสอบ state เทียบกับที่บันทึกไว้
   // ก่อนหน้านี้ (CSRF check) เพื่อกันไม่ให้ใช้ token จากคนละ session
   useEffect(() => {
-    const lineToken    = params.get('lineToken')
+    const lineFlag     = params.get('line')
     const returnState  = params.get('state')
     const lineError    = params.get('error')
 
@@ -29,7 +29,7 @@ export default function LoginPage() {
       setError('เข้าสู่ระบบด้วย LINE ไม่สำเร็จ กรุณาลองใหม่')
       return
     }
-    if (!lineToken) return
+    if (lineFlag !== '1') return
 
     // ตรวจสอบ CSRF state
     const savedState = sessionStorage.getItem('line_oauth_state')
@@ -40,7 +40,10 @@ export default function LoginPage() {
     }
 
     setLoading(true)
-    signInWithCustomToken(auth, lineToken)
+    // ดึง custom token จาก HttpOnly cookie ผ่าน API (ไม่รับ token ทาง URL แล้ว)
+    fetch('/api/auth/line/token')
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('no_token')))
+      .then(({ token }) => signInWithCustomToken(auth, token))
       .then(async (cred) => {
         const route = await getDefaultRoute(cred.user.uid)
         router.replace(route)

@@ -1,30 +1,15 @@
 import { NextResponse } from 'next/server'
+import { getAdmin, requireAdmin, authErrorResponse } from '@/lib/api/verifyAuth'
 
 /**
  * POST /api/staff/create
  * สร้าง Firebase Auth account + /staff/{uid} document สำหรับพนักงานใหม่
- * ต้องการ FIREBASE_ADMIN_PRIVATE_KEY ใน .env.local
+ * เฉพาะ admin เท่านั้น (กันคนนอกสร้างไอดี staff เอง)
  */
-async function getAdmin() {
-  const { initializeApp, getApps, cert } = await import('firebase-admin/app')
-  const { getAuth }      = await import('firebase-admin/auth')
-  const { getFirestore } = await import('firebase-admin/firestore')
-
-  if (!getApps().length) {
-    const cfg = process.env.FIREBASE_ADMIN_PRIVATE_KEY
-      ? { credential: cert({
-            projectId:   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-            privateKey:  process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g,'\n'),
-          }) }
-      : { projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID }
-    initializeApp(cfg)
-  }
-  return { auth: getAuth(), db: getFirestore() }
-}
-
 export async function POST(request) {
   try {
+    await requireAdmin(request)   // ต้องเป็น admin
+
     const { name, email, password, role } = await request.json()
 
     if (!name?.trim() || !email?.trim() || !password || !role) {
@@ -39,14 +24,12 @@ export async function POST(request) {
 
     const { auth, db } = await getAdmin()
 
-    // สร้าง Firebase Auth user
     const newUser = await auth.createUser({
       email:       email.trim(),
       password,
       displayName: name.trim(),
     })
 
-    // สร้าง /staff/{uid} document
     await db.doc(`staff/${newUser.uid}`).set({
       name:      name.trim(),
       email:     email.trim(),
@@ -57,6 +40,8 @@ export async function POST(request) {
     return NextResponse.json({ uid: newUser.uid, message: 'สร้างพนักงานสำเร็จ' }, { status: 201 })
 
   } catch(err) {
+    const authErr = authErrorResponse(err)
+    if (authErr) return authErr
     console.error('[POST /api/staff/create]', err)
     const msgs = {
       'auth/email-already-exists': 'อีเมลนี้มีบัญชีอยู่แล้ว',

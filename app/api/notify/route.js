@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
+import { requireStaff, authErrorResponse } from '@/lib/api/verifyAuth'
 
 /**
  * POST /api/notify
  * ใช้ firebase-admin (server-side) — ไม่ใช้ client SDK
+ * เฉพาะ staff เท่านั้น (กันคนนอกยิง push/notification มั่ว)
  */
 
 const REPAIR_MSGS = {
@@ -39,6 +41,8 @@ async function getAdmin() {
 
 export async function POST(request) {
   try {
+    await requireStaff(request)   // ต้องเป็นพนักงาน
+
     const { type, userId, status, plate, date, time } = await request.json()
     if (!userId || !status) return NextResponse.json({ error: 'userId and status required' }, { status: 400 })
 
@@ -89,6 +93,8 @@ export async function POST(request) {
 
     return NextResponse.json({ ok: true, results })
   } catch (err) {
+    const authErr = authErrorResponse(err)
+    if (authErr) return authErr
     console.error('[POST /api/notify]', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
