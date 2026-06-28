@@ -1,9 +1,5 @@
 // GaragePlus Cloud Functions v3.1
-// หมายเหตุ: onRepairStatusChange และ onBookingStatusChange ถูกย้ายไปที่ /api/notify
-// เพราะ Firestore asia-southeast3 (Bangkok) ยังไม่รองรับ Cloud Functions trigger
-// LINE login callback ยังคงใช้ Cloud Function (HTTP trigger — ไม่ติด region ปัญหา)
-
-const line = require('./line')
-
-// ── Sprint 6: LINE OAuth callback ─────────────────────────────────────────
-exports.lineCallback = line.lineCallback
+// onRepairStatusChange / onBookingStatusChange ย้ายไป /api/notify
+// LINE login callback ย้ายไป /api/auth/line/callback (Next.js route) แล้ว — เลิกใช้ Cloud Function
+//
+// ตอนนี้ไม่มี Cloud Function ที่ต้อง deploy
