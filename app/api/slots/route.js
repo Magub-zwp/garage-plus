@@ -16,17 +16,6 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Invalid date format. Use YYYY-MM-DD' }, { status: 400 })
   }
 
-  // ป้องกัน scrape slot อดีต หรือนานเกิน 3 เดือน
-  const requested = new Date(date)
-  const today     = new Date(); today.setHours(0, 0, 0, 0)
-  const maxDate   = new Date(today); maxDate.setMonth(maxDate.getMonth() + 3)
-  if (requested < today) {
-    return NextResponse.json({ error: 'Cannot query past dates' }, { status: 400 })
-  }
-  if (requested > maxDate) {
-    return NextResponse.json({ error: 'Date too far in future (max 3 months)' }, { status: 400 })
-  }
-
   try {
     const snap = await getDoc(doc(db, 'slots', date))
     const slotData = snap.exists()

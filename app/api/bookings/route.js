@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/firebase/config'
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 import { createBooking } from '@/lib/firebase/firestore'
-import { verifyToken } from '@/lib/api/verifyAuth'
 
 /**
  * GET /api/bookings — list user's bookings
@@ -12,12 +11,6 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('userId')
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
-
-  // ตรวจว่า caller คือเจ้าของ userId นั้นจริง (ป้องกัน IDOR)
-  const decoded = await verifyToken(request)
-  if (!decoded || decoded.uid !== userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
 
   try {
     const q = query(

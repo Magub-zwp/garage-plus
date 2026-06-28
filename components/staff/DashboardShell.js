@@ -30,7 +30,7 @@ export default function DashboardShell({ children, requiredRole }) {
     const savedCollapsed = localStorage.getItem('gp_sidebar_collapsed') === '1'
     setCollapsed(savedCollapsed)
     setReady(true)
-  }, [router, requiredRole])
+  }, [])
 
   const toggleMode = () => {
     const next = !isDark

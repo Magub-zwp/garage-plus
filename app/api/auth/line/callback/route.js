@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server'
-import { getAdmin } from '@/lib/firebase/admin'
 
 /**
  * GET /api/auth/line/callback?code=...&state=...
+ *
+ * ทำ LINE OAuth ทั้งหมดใน Next.js API route เลย
+ * ไม่ผ่าน Cloud Function → ไม่มีปัญหา redirect_uri mismatch
  *
  * Flow:
  *   1. Exchange code → LINE access_token
  *   2. ดึง LINE profile
  *   3. สร้างหรือหา Firebase user (Admin SDK)
  *   4. สร้าง Firebase custom token
- *   5. เก็บ token ใน http-only cookie → redirect /login?line_auth=1&state=<state>
- *      (ไม่ส่ง token ใน URL เพื่อป้องกัน token leak ใน browser history / server log)
+ *   5. Redirect → /login?lineToken=<token>
  */
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
@@ -71,8 +72,26 @@ export async function GET(request) {
     const name    = profile.displayName || 'ผู้ใช้ LINE'
     const picture = profile.pictureUrl  || ''
 
-    // ─── 3. Admin SDK — หาหรือสร้าง Firebase user
-    const { auth: adminAuth, db: adminDb } = await getAdmin()
+    // ─── 3. Admin SDK — หาหรือสร้าง Firebase user 
+    const { initializeApp, getApps, cert } = await import('firebase-admin/app')
+    const { getAuth }                       = await import('firebase-admin/auth')
+    const { getFirestore }                  = await import('firebase-admin/firestore')
+
+    if (!getApps().length) {
+      const cfg = process.env.FIREBASE_ADMIN_PRIVATE_KEY
+        ? {
+            credential: cert({
+              projectId:   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+              clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+              privateKey:  process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            }),
+          }
+        : { projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID }
+      initializeApp(cfg)
+    }
+
+    const adminAuth = getAuth()
+    const adminDb   = getFirestore()
 
     let firebaseUid
 
@@ -94,43 +113,31 @@ export async function GET(request) {
       firebaseUid = newUser.uid
 
       // สร้าง Firestore user document
-      // H5 FIX: consentAccepted = false เพื่อบังคับให้ user เห็นหน้า consent ก่อน
-      // (ไม่ตั้งเป็น true อัตโนมัติ — ขัดกับ PDPA)
       await adminDb.doc(`users/${firebaseUid}`).set({
         name,
-        lineId:           lineUid,
-        email:            '',
-        phone:            '',
-        birthday:         '',
-        points:           0,
-        usageCount:       0,
-        memberSince:      new Date(),
-        notifPrefs:       { status: true, promo: true, maintenance: true, line: true },
-        darkMode:         true,
-        language:         'th',
-        fcmToken:         '',
-        consentAccepted:  false,
-        consentDate:      null,
-        consentVersion:   '1.0',
+        lineId:          lineUid,
+        email:           '',
+        phone:           '',
+        birthday:        '',
+        points:          0,
+        usageCount:      0,
+        memberSince:     new Date(),
+        notifPrefs:      { status: true, promo: true, maintenance: true, line: true },
+        darkMode:        true,
+        language:        'th',
+        fcmToken:        '',
+        consentAccepted: true,
+        consentDate:     new Date().toISOString(),
+        consentVersion:  '1.0',
         marketingConsent: false,
-        isNewLineUser:    true,
       })
     }
 
-    // ─── 4. สร้าง Firebase custom token
+    // ─── 4. สร้าง Firebase custom token 
     const customToken = await adminAuth.createCustomToken(firebaseUid)
 
-    // ─── 5. เก็บ token ใน http-only cookie แล้ว redirect โดยไม่ใส่ token ใน URL
-    const state = searchParams.get('state') || ''
-    const response = NextResponse.redirect(`${appUrl}/login?line_auth=1&state=${state}`)
-    response.cookies.set('_lt', customToken, {
-      httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge:   60, // 60 วินาที — พอสำหรับ redirect flow
-      path:     '/',
-    })
-    return response
+    // ─── 5. Redirect กลับแอพพร้อม token ใน query string
+    return NextResponse.redirect(`${appUrl}/login?lineToken=${customToken}`)
 
   } catch (err) {
     console.error('[LINE callback] Error:', err)

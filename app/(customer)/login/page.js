@@ -18,20 +18,20 @@ export default function LoginPage() {
   const [form,    setForm]    = useState({ email: '', password: '' })
   const redirectTimerRef = useRef(null)
 
-  // รับ flag line_auth=1 ที่ callback redirect มาให้ แล้ว fetch token จาก http-only cookie
-  // (token ไม่โผล่ใน URL อีกต่อไป — ป้องกัน token leak ใน browser history)
+  // รับ LINE custom token ที่ callback URL ส่งกลับมา แล้วตรวจสอบ state เทียบกับที่บันทึกไว้
+  // ก่อนหน้านี้ (CSRF check) เพื่อกันไม่ให้ใช้ token จากคนละ session
   useEffect(() => {
-    const lineAuth    = params.get('line_auth')
-    const returnState = params.get('state')
-    const lineError   = params.get('error')
+    const lineToken    = params.get('lineToken')
+    const returnState  = params.get('state')
+    const lineError    = params.get('error')
 
     if (lineError) {
       setError('เข้าสู่ระบบด้วย LINE ไม่สำเร็จ กรุณาลองใหม่')
       return
     }
-    if (lineAuth !== '1') return
+    if (!lineToken) return
 
-    // ตรวจสอบ CSRF state ฝั่ง client
+    // ตรวจสอบ CSRF state
     const savedState = sessionStorage.getItem('line_oauth_state')
     sessionStorage.removeItem('line_oauth_state')
     if (savedState && returnState && returnState !== savedState) {
@@ -40,11 +40,8 @@ export default function LoginPage() {
     }
 
     setLoading(true)
-    fetch('/api/auth/line/token')
-      .then((r) => r.json())
-      .then(async ({ token, error }) => {
-        if (error || !token) throw new Error('no_token')
-        const cred = await signInWithCustomToken(auth, token)
+    signInWithCustomToken(auth, lineToken)
+      .then(async (cred) => {
         const route = await getDefaultRoute(cred.user.uid)
         router.replace(route)
       })

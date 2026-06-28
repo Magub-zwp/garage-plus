@@ -25,7 +25,7 @@ export function useBookings() {
 
   // แบ่งรายการจองออกเป็น 3 กลุ่มให้หน้า my-bookings ใช้แสดงผล
   const upcoming = bookings.filter((b) =>
-    ['pending', 'confirmed', 'awaiting_approval'].includes(b.status) // รอยืนยัน / ยืนยันแล้ว / รออนุมัติ
+    ['pending', 'confirmed'].includes(b.status)  // รอยืนยัน / ยืนยันแล้ว → ยังไม่ถึงวัน
   )
   const active = bookings.filter((b) => b.status === 'repairing') // กำลังซ่อมอยู่ตอนนี้
   const past   = bookings.filter((b) => ['done', 'cancelled'].includes(b.status)) // ประวัติ

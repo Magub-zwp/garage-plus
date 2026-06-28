@@ -23,9 +23,9 @@ export default function StaffLoginPage() {
     try {
       const user = await loginWithEmail(email, pw)
       const snap = await getDoc(doc(db, 'staff', user.uid))
-      if (!snap.exists()) { setError('บัญชีนี้ไม่มีสิทธิ์เข้าใช้ Staff Portal'); setLoading(false); return }
+      if (!snap.exists()) { setError('บัญชีนี้ไม่มีสิทธิ์เข้าใช้ Staff Portal'); return }
       const staffData = snap.data()
-      if (staffData.role !== role) { setError(`บัญชีนี้เป็น ${staffData.role==='admin'?'Admin':'ช่าง'} ไม่ใช่ ${role==='admin'?'Admin':'ช่าง'}`); setLoading(false); return }
+      if (staffData.role !== role) { setError(`บัญชีนี้เป็น ${staffData.role==='admin'?'Admin':'ช่าง'} ไม่ใช่ ${role==='admin'?'Admin':'ช่าง'}`); return }
       saveSession({ uid:user.uid, name:staffData.name||email, role:staffData.role, email:user.email })
       router.replace(staffData.role === 'admin' ? '/staff/dashboard' : '/staff/mech/queue')
     } catch (e) {

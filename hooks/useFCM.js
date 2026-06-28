@@ -43,9 +43,9 @@ export function useFCM() {
           await updateUserDocument(uid, { fcmToken: token })
         }
 
-        // รับ notification เมื่อแอพเปิดอยู่ (foreground) — เก็บ unsubscribe function
+        // รับ notification เมื่อแอพเปิดอยู่ (foreground)
         const { onMessage } = await import('firebase/messaging')
-        unsubscribeRef = onMessage(messaging, (payload) => {
+        onMessage(messaging, (payload) => {
           const { title, body } = payload.notification || {}
           if (title && body && Notification.permission === 'granted') {
             new Notification(title, {
@@ -61,9 +61,6 @@ export function useFCM() {
       }
     }
 
-    let unsubscribeRef = null
     initFCM()
-
-    return () => { if (unsubscribeRef) unsubscribeRef() }
   }, [uid])
 }
