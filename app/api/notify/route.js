@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/api/verifyAuth'
+import { requireStaff } from '@/lib/api/verifyAuth'
 
 /**
  * POST /api/notify
  * ใช้ firebase-admin (server-side) — ไม่ใช้ client SDK
- * ต้องการ role=admin เท่านั้น (ป้องกัน spam notification)
+ * ต้องการ staff token (admin หรือ mech) — ป้องกัน spam notification
  */
 
 const REPAIR_MSGS = {
@@ -40,7 +40,7 @@ async function getAdmin() {
 }
 
 export async function POST(request) {
-  const caller = await requireAdmin(request)
+  const caller = await requireStaff(request)
   if (!caller) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -88,15 +88,4 @@ export async function POST(request) {
         const r = await fetch('https://api.line.me/v2/bot/message/push', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` },
-          body: JSON.stringify({ to: lineId, messages: [{ type: 'flex', altText: `รถ ${plate||''} ซ่อมเสร็จแล้ว — 179 Auto`, contents: { type:'bubble', header:{ type:'box', layout:'vertical', contents:[{ type:'text', text:'✅ รถซ่อมเสร็จแล้ว!', weight:'bold', size:'lg', color:'#ffffff' }], backgroundColor:'#E8863A', paddingAll:'16px' }, body:{ type:'box', layout:'vertical', spacing:'sm', contents:[{ type:'text', text:`สวัสดี คุณ${name||''}`, size:'sm', color:'#888888' },{ type:'separator', margin:'md' },{ type:'box', layout:'horizontal', margin:'sm', contents:[{ type:'text', text:'ทะเบียน', size:'sm', color:'#888888', flex:2 },{ type:'text', text:plate||'-', size:'sm', weight:'bold', flex:3 }] }] }, footer:{ type:'box', layout:'vertical', contents:[{ type:'button', style:'primary', color:'#E8863A', action:{ type:'uri', label:'ดูรายละเอียด', uri:`${process.env.NEXT_PUBLIC_APP_URL||'http://localhost:3000'}/status` } }] } } }] })
-        })
-        results.line = r.ok ? 'sent' : `failed: ${r.status}`
-      }
-    }
-
-    return NextResponse.json({ ok: true, results })
-  } catch (err) {
-    console.error('[POST /api/notify]', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
-}
+          body: JSON.stringify({ to: lineId, messages: [{ type: 'flex', altText: `รถ ${plate||''} ซ่อมเสร็จแล้ว — 179 Auto`, contents: { type:'bubble', header:{ type:'box', layout:'vertical', contents:[{ type:'text', text:'✅ รถซ่อมเสร็จแล้ว!', weight:'bold', size:'lg', color:'#ffffff' }], backgroundColor:'#E8863A', paddingAll:'16px' }, body:{ type:'box', layout:'vertical', spacing:'sm', contents:[{ type:'text', text:`สวัสดี คุณ${name||''}`, size:'sm', color:'#888888' },{ type:'separator', margin:'md' },{ type:'box', layout:'horizontal', margin:'sm', contents:[{ type:'text', text:'ทะเบียน', size:'sm', color:'#888888', flex:2 },{ type:'text', text:plate||'-', size:'sm', weight:'bold', flex:3 }] }] }, footer:{ type:'box', layout:'vertical', contents:[{ type:'button', style:'primary', color:'#E8863A', action:{ type:'uri', label:'ดูรายละเอียด', uri:`${process.env.NEXT_PUBLIC_APP_URL||'http://localhost:3000'}/status`
