@@ -53,4 +53,32 @@ export async function POST(request) {
     } = body
 
     if (!title || !category) {
-      return NextResponse.
+      return NextResponse.json({ error: 'title and category required' }, { status: 400 })
+    }
+
+    const { db } = await getAdmin()
+    const { FieldValue } = await import('firebase-admin/firestore')
+
+    const ref = await db.collection('articles').add({
+      type:          type         || 'internal',
+      sourceUrl:     sourceUrl    || '',
+      sourceName:    sourceName   || '',
+      sourceFavicon: sourceFavicon || '',
+      title,
+      description:   description  || '',
+      thumbnailUrl:  thumbnailUrl  || '',
+      content:       content       || '',
+      category,
+      tags:          tags          || [],
+      published:     !!published,
+      featured:      !!featured,
+      addedBy:       addedBy       || caller.uid,
+      scrapedAt:     null,
+      createdAt:     FieldValue.serverTimestamp(),
+    })
+
+    return NextResponse.json({ id: ref.id }, { status: 201 })
+  } catch (e) {
+    return NextResponse.json({ error: e.message }, { status: 500 })
+  }
+}
