@@ -20,11 +20,16 @@ export default function BookingDetailPage({ params }) {
   const [error,      setError]      = useState('')
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !uid) return
     getBooking(id)
-      .then(b => { setBooking(b); setLoading(false) })
+      .then(b => {
+        // ตรวจ ownership — ป้องกัน user A เข้าดู booking ของ user B
+        if (!b || b.userId !== uid) { setLoading(false); return }
+        setBooking(b)
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
-  }, [id])
+  }, [id, uid])
 
   const canCancel = booking && ['pending','confirmed'].includes(booking.status)
   

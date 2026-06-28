@@ -1,7 +1,10 @@
 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useRepairStatus, STATUS_STEP, STATUS_BADGE } from '@/hooks/useRepairStatus'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase/config'
 import BottomNav from '@/components/customer/BottomNav'
 
 const STEPS = [
@@ -11,24 +14,30 @@ const STEPS = [
   { id: 4, status: 'qc',         label: 'QC',      short: 'QC'     },
   { id: 5, status: 'done',       label: 'ส่งมอบ', short: 'ส่งมอบ' },
 ]
-// Timeline templates for each repair status
+
+// awaiting_approval แสดงที่ step 2 เหมือน diagnosing
+// แต่ badge และ consent card จะบอกว่าต้องอนุมัติก่อน
 const TIMELINE_TEMPLATES = {
-  waiting:    { title: 'รับรถเข้าอู่แล้ว',          icon: '✓' },
-  diagnosing: { title: 'ตรวจวินิจฉัยสภาพรถ',         icon: '✓' },
-  repairing:  { title: 'กำลังดำเนินการซ่อม',          icon: '🔧' },
-  qc:         { title: 'ตรวจสอบคุณภาพหลังซ่อม (QC)', icon: '🔍' },
-  done:       { title: 'ส่งมอบรถเรียบร้อย',           icon: '✓' },
+  waiting:           { title: 'รับรถเข้าอู่แล้ว',              icon: '✓'  },
+  diagnosing:        { title: 'ตรวจวินิจฉัยสภาพรถ',            icon: '✓'  },
+  awaiting_approval: { title: 'รออนุมัติจากลูกค้าก่อนซ่อม',   icon: '⏳' },
+  repairing:         { title: 'กำลังดำเนินการซ่อม',             icon: '🔧' },
+  qc:                { title: 'ตรวจสอบคุณภาพหลังซ่อม (QC)',    icon: '🔍' },
+  done:              { title: 'ส่งมอบรถเรียบร้อย',              icon: '✓'  },
 }
 
 function buildTimeline(repair) {
   if (!repair) return []
   const currentStep = STATUS_STEP[repair.status] || 0
   return STEPS.map((step) => {
-    const stepNum   = step.id
-    const isDone    = stepNum < currentStep
-    const isActive  = stepNum === currentStep
-    const eventData = repair.timeline?.find((t) => t.stepId === stepNum)
-    const template  = TIMELINE_TEMPLATES[step.status]
+    const stepNum  = step.id
+    const isDone   = stepNum < currentStep
+    const isActive = stepNum === currentStep
+    // timeline entries เก็บ { status, time, desc, ... } — ค้นหาด้วย status ของ step นั้น
+    // รองรับ awaiting_approval ที่แสดงที่ step 2 เช่นกัน
+    const statusKey = (isActive && repair.status === 'awaiting_approval') ? 'awaiting_approval' : step.status
+    const eventData = repair.timeline?.find((t) => t.status === statusKey)
+    const template  = TIMELINE_TEMPLATES[statusKey] || TIMELINE_TEMPLATES[step.status]
     return {
       ...step,
       state:    isDone ? 'done' : isActive ? 'active' : 'pending',
@@ -40,14 +49,14 @@ function buildTimeline(repair) {
     }
   })
 }
-// Step bar component to show repair progress
+
 function StepBar({ currentStep }) {
   return (
     <div className="flex items-stretch mx-3.5 mb-3.5 rounded-xl overflow-hidden"
       style={{ border: '0.5px solid var(--brd)' }}>
       {STEPS.map((step) => {
-        const isDone    = step.id < currentStep
-        const isActive  = step.id === currentStep
+        const isDone   = step.id < currentStep
+        const isActive = step.id === currentStep
         return (
           <div key={step.id} className="flex-1 flex flex-col items-center py-2 text-center gap-0.5"
             style={{
@@ -64,7 +73,7 @@ function StepBar({ currentStep }) {
     </div>
   )
 }
-// Timeline item component to show each step's details
+
 function TimelineItem({ item }) {
   const isDone    = item.state === 'done'
   const isActive  = item.state === 'active'
@@ -87,7 +96,84 @@ function TimelineItem({ item }) {
     </div>
   )
 }
-// Main status page component to show current repair status and timeline
+
+// การ์ดแสดงให้ลูกค้าอนุมัติ/ปฏิเสธก่อนดำเนินการซ่อม
+function ConsentCard({ repair }) {
+  const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
+
+  const respond = async (decision) => {
+    setSubmitting(true)
+    try {
+      await updateDoc(doc(db, 'repairs', repair.id), {
+        approval:  { decision, respondedAt: new Date().toISOString() },
+        updatedAt: serverTimestamp(),
+      })
+      setDone(true)
+    } catch (e) {
+      console.error('[consent]', e)
+    } finally { setSubmitting(false) }
+  }
+
+  if (done) return (
+    <div className="mx-4 mt-4 p-4 rounded-2xl text-center"
+      style={{ background: 'var(--gdim)', border: '0.5px solid var(--gbrd)' }}>
+      <p className="font-syne text-sm font-bold text-grn">✓ บันทึกการตอบรับแล้ว</p>
+      <p className="text-xs text-t2 mt-1">ช่างจะดำเนินการตามที่คุณแจ้ง</p>
+    </div>
+  )
+
+  return (
+    <div className="mx-4 mt-4 p-4 rounded-2xl"
+      style={{ background: 'var(--adim)', border: '0.5px solid var(--abrd)' }}>
+      <p className="font-syne text-sm font-bold text-acc mb-1">⏳ รออนุมัติจากคุณ</p>
+      <p className="text-xs text-t2 leading-relaxed mb-3">
+        ช่างตรวจพบปัญหาและรอการอนุมัติเพื่อดำเนินการซ่อม
+        กรุณาตรวจสอบรายการแล้วอนุมัติหรือปฏิเสธ
+      </p>
+
+      {/* รายการค่าใช้จ่ายที่ช่างแจ้ง (ถ้ามี) */}
+      {repair.approval?.items?.length > 0 && (
+        <div className="mb-3 p-3 rounded-xl" style={{ background: 'var(--s2)' }}>
+          {repair.approval.items.map((item, i) => (
+            <div key={i} className="flex justify-between py-1 text-xs">
+              <span className="text-t2">{item.name}</span>
+              <span className="font-semibold text-t1">฿{(item.price || 0).toLocaleString()}</span>
+            </div>
+          ))}
+          <div className="flex justify-between pt-2 mt-1" style={{ borderTop: '0.5px solid var(--brd)' }}>
+            <span className="text-xs font-bold text-t1">รวม (ประมาณ)</span>
+            <span className="text-sm font-extrabold text-acc">
+              ฿{repair.approval.items.reduce((s, i) => s + (i.price || 0), 0).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {repair.approval?.note && (
+        <p className="text-xs text-t2 mb-3 italic">"{repair.approval.note}"</p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => respond('rejected')}
+          disabled={submitting}
+          className="flex-1 py-2.5 rounded-xl text-xs font-bold border-none cursor-pointer"
+          style={{ background: 'var(--errdim)', color: 'var(--err)' }}>
+          ปฏิเสธ
+        </button>
+        <button
+          onClick={() => respond('approved')}
+          disabled={submitting}
+          className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white border-none cursor-pointer"
+          style={{ background: 'var(--acc)' }}>
+          {submitting ? 'กำลังบันทึก...' : 'อนุมัติ'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function StatusPage() {
   const { uid } = useAuth()
   const { repair, loading, currentStep } = useRepairStatus()
@@ -107,7 +193,6 @@ export default function StatusPage() {
             style={{ borderColor: 'var(--acc)', borderTopColor: 'transparent' }} />
         </div>
       ) : !repair ? (
-        /* ── Empty State ── */
         <div className="flex flex-col items-center justify-center pt-20 px-8 text-center">
           <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4"
             style={{ background: 'var(--s2)' }}>🔧</div>
@@ -143,10 +228,8 @@ export default function StatusPage() {
               </span>
             </div>
 
-            {/* Step bar */}
             <StepBar currentStep={currentStep} />
 
-            {/* Cost estimate */}
             {repair.costItems && repair.costItems.length > 0 && (
               <div className="mt-2 pt-3" style={{ borderTop: '0.5px solid var(--brd)' }}>
                 <p className="text-xs text-t3 mb-1">รายการซ่อม</p>
@@ -159,15 +242,18 @@ export default function StatusPage() {
                 <div className="flex justify-between pt-2 mt-1" style={{ borderTop: '0.5px solid var(--brd)' }}>
                   <span className="text-xs font-bold text-t1">รวม {repair.isFinalPrice ? '' : '(ประมาณ)'}</span>
                   <span className="text-sm font-extrabold text-acc">
-                    ฿{(repair.costItems.reduce((s, i) => s + (i.price || 0), 0)).toLocaleString()}
+                    ฿{repair.costItems.reduce((s, i) => s + (i.price || 0), 0).toLocaleString()}
                   </span>
                 </div>
               </div>
             )}
           </div>
 
+          {/* Consent card — แสดงเมื่อรออนุมัติ */}
+          {repair.status === 'awaiting_approval' && <ConsentCard repair={repair} />}
+
           {/* Timeline */}
-          <div className="mx-4">
+          <div className="mx-4 mt-4">
             <p className="text-xs font-bold text-t3 uppercase tracking-widest mb-3">ขั้นตอนการซ่อม</p>
             <div className="flex flex-col">
               {timeline.map((item) => (
@@ -176,7 +262,6 @@ export default function StatusPage() {
             </div>
           </div>
 
-          {/* Done CTA */}
           {repair.status === 'done' && (
             <div className="mx-4 mt-4 p-4 rounded-2xl text-center"
               style={{ background: 'var(--gdim)', border: '0.5px solid var(--gbrd)' }}>

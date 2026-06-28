@@ -129,7 +129,7 @@ export default function SignUpPage() {
         )}
         {errors.password && <p className="text-xs text-err mt-1">⚠️ {errors.password}</p>}
       </div>
-// Confirm password field with validation
+      {/* Confirm password field with validation */}
       <div className="mb-4">
         <label className="field-label">ยืนยันรหัสผ่าน <span className="required-mark">*</span></label>
         <input className="input-field"
@@ -160,7 +160,7 @@ export default function SignUpPage() {
 
         {errors.consent && <p className="text-xs text-err -mt-2 mb-3">⚠️ {errors.consent}</p>}
       </div>
-// Submit button with loading state and disabled state when privacy consent is not given
+      {/* Submit button — disabled ถ้า privacy consent ยังไม่ถูกเลือก */}
       <button
         className="btn-primary flex items-center justify-center gap-2 mb-4"
         onClick={handleSubmit}

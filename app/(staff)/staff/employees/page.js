@@ -1,8 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
 import DashboardShell from '@/components/staff/DashboardShell'
-import { db } from '@/lib/firebase/config'
+import { db, auth } from '@/lib/firebase/config'
 import { collection, getDocs } from 'firebase/firestore'
+
+// Helper: ดึง Firebase ID token ของ staff ที่ login อยู่
+async function getToken() {
+  return auth.currentUser?.getIdToken() ?? null
+}
 
 const ROLE_LABEL = { admin:'👑 แอดมิน', mechanic:'🔧 ช่างซ่อม' }
 const EMPTY = { name:'', email:'', password:'', role:'mechanic' }
@@ -38,9 +43,10 @@ export default function EmployeesPage() {
     }
     setSaving(true); setMsg('')
     try {
+      const token = await getToken()
       const res = await fetch('/api/staff/create', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body:    JSON.stringify({ name:form.name.trim(), email:form.email.trim(), password:form.password, role:form.role }),
       })
       const data = await res.json()
@@ -57,9 +63,10 @@ export default function EmployeesPage() {
   const handleDelete = async (uid, name) => {
     if (!confirm(`ลบ ${name}? บัญชี Firebase Auth จะถูกลบด้วย`)) return
     try {
+      const token = await getToken()
       const res = await fetch('/api/staff/delete', {
         method:  'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body:    JSON.stringify({ uid }),
       })
       const data = await res.json()
