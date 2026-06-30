@@ -23,10 +23,10 @@ service cloud.firestore {
       allow read:   if request.auth.uid == resource.data.userId || isStaff();
       allow create: if isStaff();
       allow update: if isStaff()
-                       // consent: เจ้าของรถแก้ได้เฉพาะ field approval/timeline/updatedAt (TC-02 consent)
+                       // consent: เจ้าของรถแก้ได้เฉพาะ field approval/timeline/updatedAt/status (TC-02 consent)
                        || (request.auth.uid == resource.data.userId
                            && request.resource.data.diff(resource.data).affectedKeys()
-                                .hasOnly(['approval', 'timeline', 'updatedAt']));
+                                .hasOnly(['approval', 'timeline', 'updatedAt', 'status']));
       allow delete: if isAdmin();
     }
 

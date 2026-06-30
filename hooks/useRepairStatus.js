@@ -7,14 +7,16 @@ import { useAuthContext } from '@/context/AuthContext'
 export const STATUS_STEP = {
   waiting:    1,
   diagnosing: 2,
-  repairing:  3,
-  qc:         4,
-  done:       5,
+  awaiting_approval: 3,
+  repairing:  4,
+  qc:         5,
+  done:       6,
 }
 
 export const STATUS_LABEL = {
   waiting:    'รับรถเข้าอู่',
   diagnosing: 'ตรวจวินิจฉัยสภาพรถ',
+  awaiting_approval: 'รอการอนุมัติซ่อม',
   repairing:  'กำลังดำเนินการซ่อม',
   qc:         'ตรวจสอบคุณภาพ (QC)',
   done:       'ส่งมอบรถ',
@@ -23,6 +25,7 @@ export const STATUS_LABEL = {
 export const STATUS_BADGE = {
   waiting:    { text: 'รอรับรถ',    color: 'var(--blue)' },
   diagnosing: { text: 'กำลังตรวจ', color: 'var(--acc)'  },
+  awaiting_approval: { text: 'รออนุมัติ', color: 'var(--err)' },
   repairing:  { text: 'กำลังซ่อม', color: 'var(--acc)'  },
   qc:         { text: 'ตรวจ QC',   color: 'var(--acc)'  },
   done:       { text: 'เสร็จแล้ว', color: 'var(--grn)'  },

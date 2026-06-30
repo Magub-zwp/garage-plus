@@ -18,7 +18,7 @@ export default function MechHistoryPage() {
       collection(db, 'repairs'),
       where('mechanicId', '==', session.uid),
       where('status', '==', 'done'),
-      orderBy('updatedAt', 'desc'),
+      orderBy('createdAt', 'desc'),
       limit(100)
     ))
       .then(snap => setHistory(snap.docs.map(d => ({ id: d.id, ...d.data() }))))

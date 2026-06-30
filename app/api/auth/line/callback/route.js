@@ -12,7 +12,9 @@ export async function GET(request) {
   const state = searchParams.get('state') || ''   // echo กลับให้ client ตรวจ CSRF
   const error = searchParams.get('error')
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin
+  // ใช้ origin จริงที่ผู้ใช้เข้ามาเสมอ — ต้องตรงกับ redirect_uri ที่หน้า login ส่งไป (window.location.origin)
+  // ไม่งั้น LINE จะปฏิเสธตอนแลก token เพราะ redirect_uri ไม่ตรง
+  const appUrl = origin
 
   if (error) return NextResponse.redirect(`${appUrl}/login?error=line_denied`)
   if (!code)  return NextResponse.redirect(`${appUrl}/login`)

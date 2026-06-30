@@ -101,14 +101,14 @@ export default function EmployeesPage() {
             </div>
           ) : (
             <table className="data-table" style={{ tableLayout:'fixed', width:'100%' }}>
-              <colgroup><col/><col style={{ width:100 }}/><col style={{ width:150 }}/><col style={{ width:56 }}/></colgroup>
+              <colgroup><col/><col style={{ width:120 }}/><col style={{ width:150 }}/><col style={{ width:56 }}/></colgroup>
               <thead><tr><th>ชื่อ</th><th>Role</th><th>Email</th><th></th></tr></thead>
               <tbody>
                 {staff.map(s => (
                   <tr key={s.uid}>
                     <td className="font-semibold text-sm text-t1">{s.name||'-'}</td>
                     <td>
-                      <span className={`bdg ${s.role==='admin'?'bdg-rep':'bdg-done'}`}>
+                      <span className={`bdg ${s.role==='admin'?'bdg-rep':'bdg-done'}`} style={{ whiteSpace:'nowrap' }}>
                         {ROLE_LABEL[s.role]||s.role}
                       </span>
                     </td>
@@ -125,7 +125,7 @@ export default function EmployeesPage() {
           )}
         </div>
       )}
-      // Modal form for adding a new staff member
+      {/* Modal form for adding a new staff member */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-surf rounded-2xl p-6 w-full max-w-md">
@@ -144,7 +144,7 @@ export default function EmployeesPage() {
                   value={form[f.k]||''} onChange={e => setForm({...form,[f.k]:e.target.value})} />
               </div>
             ))}
-        // Password field with show/hide toggle
+            {/* Password field with show/hide toggle */}
             <div className="mb-4">
               <label className="field-label">รหัสผ่านเริ่มต้น * <span className="text-t3 font-normal">(อย่างน้อย 8 ตัว)</span></label>
               <div className="relative">
@@ -157,7 +157,7 @@ export default function EmployeesPage() {
                 </button>
               </div>
             </div>
-            // Role selection buttons
+            {/* Role selection buttons */}
             <div className="mb-4">
               <label className="field-label">Role</label>
               <div className="grid grid-cols-2 gap-2">
@@ -170,7 +170,7 @@ export default function EmployeesPage() {
                 ))}
               </div>
             </div>
-// Action buttons for canceling or creating the staff member
+            {/* Action buttons for canceling or creating the staff member */}
             <div className="flex gap-2">
               <button onClick={() => { setShowForm(false); setMsg('') }}
                 className="flex-1 py-3 bg-s2 rounded-xl text-sm font-bold text-t1 border-none cursor-pointer">

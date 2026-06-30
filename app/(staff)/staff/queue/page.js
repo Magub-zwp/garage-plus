@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 
 const BDG = { pending:'bdg-wait', confirmed:'bdg-wait', repairing:'bdg-rep', done:'bdg-done', cancelled:'bdg-hold' }
 const BLB = { pending:'รอยืนยัน', confirmed:'ยืนยัน', repairing:'ซ่อม', done:'เสร็จ', cancelled:'ยกเลิก' }
@@ -42,6 +42,30 @@ export default function QueuePage() {
     )
     return () => unsub()
   }, [date])
+
+  // ยกเลิกอัตโนมัติสำหรับคิวที่เลยเวลานัด (เกิน 30 นาที) และยัง pending/confirmed
+  useEffect(() => {
+    if (!bookings.length) return
+    const now = new Date()
+    bookings.forEach(async (b) => {
+      if (b.status === 'pending' || b.status === 'confirmed') {
+        const bTime = new Date(`${b.date}T${b.time}:00`)
+        bTime.setMinutes(bTime.getMinutes() + 30) // ให้เวลาเลท 30 นาที
+        if (now > bTime) {
+          try {
+            await updateDoc(doc(db, 'bookings', b.id), {
+              status: 'cancelled',
+              cancelReason: 'ไม่มาตามนัด / เลยเวลานัด (อัตโนมัติ)',
+              updatedAt: serverTimestamp()
+            })
+            // ไม่ต้องแจ้งเตือนผ่าน API (หรือจะแจ้งก็ได้ แต่ปกติถ้าไม่มาก็แค่ตัดคิว)
+          } catch (e) {
+            console.error('Auto cancel failed:', e)
+          }
+        }
+      }
+    })
+  }, [bookings])
 
   const shown = filter === 'all'
     ? bookings

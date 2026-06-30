@@ -5,9 +5,10 @@ import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 import { getSession } from '@/lib/staff/session'
+import { ACTIVE_STATUSES } from '@/lib/repairStatus'
 
-const BDG = { waiting:'bdg-wait', diagnosing:'bdg-wait', repairing:'bdg-rep', qc:'bdg-hold', done:'bdg-done' }
-const BLB = { waiting:'รอรับรถ', diagnosing:'ตรวจ', repairing:'ซ่อม', qc:'QC', done:'เสร็จ' }
+const BDG = { waiting:'bdg-wait', diagnosing:'bdg-wait', awaiting_approval:'bdg-hold', repairing:'bdg-rep', qc:'bdg-hold', done:'bdg-done' }
+const BLB = { waiting:'รอรับรถ', diagnosing:'ตรวจ', awaiting_approval:'รออนุมัติ', repairing:'ซ่อม', qc:'QC', done:'เสร็จ' }
 
 export default function MechQueuePage() {
   const [repairs,  setRepairs]  = useState([])
@@ -22,7 +23,7 @@ export default function MechQueuePage() {
     getDocs(query(
       collection(db, 'repairs'),
       where('mechanicId', '==', session.uid),
-      where('status', 'in', ['waiting', 'diagnosing', 'repairing', 'qc']),
+      where('status', 'in', ACTIVE_STATUSES),
       orderBy('createdAt', 'desc')
     ))
       .then(snap => setRepairs(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
