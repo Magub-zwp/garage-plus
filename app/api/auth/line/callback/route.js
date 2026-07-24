@@ -14,7 +14,11 @@ export async function GET(request) {
 
   // ใช้ origin จริงที่ผู้ใช้เข้ามาเสมอ — ต้องตรงกับ redirect_uri ที่หน้า login ส่งไป (window.location.origin)
   // ไม่งั้น LINE จะปฏิเสธตอนแลก token เพราะ redirect_uri ไม่ตรง
-  const appUrl = origin
+  // บน Cloud Run/Firebase App Hosting, request.url เป็น internal URL (เช่น 0.0.0.0:8080)
+  // เพราะ request ผ่าน reverse proxy มาก่อน ต้องอ่าน host จริงจาก x-forwarded-* header แทน
+  const fwdProto = request.headers.get('x-forwarded-proto')
+  const fwdHost  = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  const appUrl = fwdHost ? `${fwdProto || 'https'}://${fwdHost}` : origin
 
   if (error) return NextResponse.redirect(`${appUrl}/login?error=line_denied`)
   if (!code)  return NextResponse.redirect(`${appUrl}/login`)
