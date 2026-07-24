@@ -1,5 +1,21 @@
 import { NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { getAdmin } from '@/lib/api/verifyAuth'
+
+// ตรวจ state ที่ออกโดย /api/auth/line/link-init (รูปแบบ "link.<uid>.<expiry>.<sig>.<csrf>")
+// คืน uid ถ้า signature ถูกต้องและยังไม่หมดอายุ, คืน null ถ้าไม่ใช่ link-mode หรือปลอมมา
+function verifyLinkState(state, secret) {
+  if (!state || !state.startsWith('link.')) return null
+  const parts = state.split('.')
+  if (parts.length < 5) return null
+  const [, uid, expiryStr, sig] = parts
+  const expiry  = Number(expiryStr)
+  const payload = `${uid}.${expiryStr}`
+  const expectedSig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
+  if (sig !== expectedSig) return null            // signature ไม่ตรง — ปลอมมา
+  if (!expiry || Date.now() > expiry) return null // หมดอายุ
+  return uid
+}
 
 /**
  * GET /api/auth/line/callback?code=...&state=...
@@ -63,6 +79,19 @@ export async function GET(request) {
     let firebaseUid
 
     const existingSnap = await adminDb.collection('users').where('lineId', '==', lineUid).limit(1).get()
+
+    // ─── โหมด "เชื่อมบัญชี": user ที่ login อยู่แล้ว (Google/อีเมล) มาผูก LINE เพิ่มเข้าบัญชีเดิม
+    // (state ถูกเซ็นมาจาก /api/auth/line/link-init แล้ว ต้องผ่านการ verify signature ก่อนเชื่อถือ)
+    const linkUid = verifyLinkState(state, channelSecret)
+    if (linkUid) {
+      if (!existingSnap.empty && existingSnap.docs[0].id !== linkUid) {
+        // LINE บัญชีนี้ผูกกับ Firebase user คนอื่นไปแล้ว ห้ามแย่งมาผูกซ้ำ
+        return NextResponse.redirect(`${appUrl}/settings?lineLinkError=already_linked`)
+      }
+      await adminDb.doc(`users/${linkUid}`).set({ lineId: lineUid }, { merge: true })
+      return NextResponse.redirect(`${appUrl}/settings?lineLinked=1`)
+    }
+
     if (!existingSnap.empty) {
       firebaseUid = existingSnap.docs[0].id
     } else {
