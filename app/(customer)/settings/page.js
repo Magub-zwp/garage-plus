@@ -85,7 +85,6 @@ export default function SettingsPage() {
             {right}
           </div>
         ))}
-  // Notification preferences section
         <p className="text-xs font-bold text-t3 uppercase tracking-widest mb-2 mt-4">การแจ้งเตือน</p>
         {[
           { k:'status',      icon:'🔧', bg:'var(--adim)',              title:'อัปเดตสถานะซ่อม' },
@@ -99,7 +98,6 @@ export default function SettingsPage() {
             <Toggle on={notifs[k]} onChange={() => toggleNotif(k)} />
           </div>
         ))}
-  // Privacy settings section
         <p className="text-xs font-bold text-t3 uppercase tracking-widest mb-2 mt-4">ความเป็นส่วนตัว</p>
         <Link href="/settings/change-password">
           <div className="profile-row">
@@ -114,7 +112,6 @@ export default function SettingsPage() {
           <span className="text-t3 text-base">›</span>
         </div>
       </div>
-      // Additional settings and account actions
         <p className="text-xs font-bold text-t3 uppercase tracking-widest mb-2 mt-4">PDPA — ข้อมูลของคุณ</p>
         <div className="profile-row">
           <div className="profile-row-icon" style={{ background:'var(--gdim)' }}>📋</div>
@@ -132,7 +129,6 @@ export default function SettingsPage() {
           <button onClick={() => setShowDelete(true)} className="text-xs font-bold px-3 py-1.5 rounded-full cursor-pointer border-none" style={{ background:'var(--errdim)', color:'var(--err)' }}>ลบ</button>
         </div>
       <p className="text-center text-xs text-t3 mt-6 mb-2">Garage Plus v3.0 · 179 Auto</p>
-      // Delete account confirmation dialog
       {showDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-6">
           <div className="bg-surf rounded-3xl p-6 w-full max-w-sm">
