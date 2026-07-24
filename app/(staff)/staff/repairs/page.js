@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
@@ -9,6 +9,14 @@ import { STEPS, STATUS_MAP, ACTIVE_STATUSES, statusIndex, canTransition, REPAIRI
 import { notifyRepairStatus, syncBookingStatus } from '@/lib/notify'
 
 export default function RepairsPage() {
+  return (
+    <Suspense fallback={null}>
+      <RepairsPageContent />
+    </Suspense>
+  )
+}
+
+function RepairsPageContent() {
   const params   = useSearchParams()
   const repairId = params.get('id')
 

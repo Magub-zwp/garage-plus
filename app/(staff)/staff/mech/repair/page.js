@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import DashboardShell from '@/components/staff/DashboardShell'
@@ -9,6 +9,14 @@ import { STEPS, STATUS_MAP, statusIndex, canTransition, REPAIRING_IDX } from '@/
 import { notifyRepairStatus, syncBookingStatus, pushNotification } from '@/lib/notify'
 
 export default function MechRepairPage() {
+  return (
+    <Suspense fallback={null}>
+      <MechRepairContent />
+    </Suspense>
+  )
+}
+
+function MechRepairContent() {
   const params   = useSearchParams()
   const repairId = params.get('id')
 

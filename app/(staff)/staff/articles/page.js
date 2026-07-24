@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 // useSearchParams ทำให้ component re-render เมื่อ URL เปลี่ยน
 // จึงใช้ trigger refetch รายการบทความโดยอัตโนมัติหลังกลับมาจากหน้าสร้างบทความใหม่
 import { useSearchParams } from 'next/navigation'
@@ -8,6 +8,14 @@ import Link from 'next/link'
 import { getAllArticles, updateArticle, deleteArticle } from '@/lib/firebase/firestore'
 
 export default function StaffArticlesPage() {
+  return (
+    <Suspense fallback={null}>
+      <StaffArticlesPageContent />
+    </Suspense>
+  )
+}
+
+function StaffArticlesPageContent() {
   const searchParams = useSearchParams()
   const [articles, setArticles] = useState([])
   const [loading,  setLoading]  = useState(true)

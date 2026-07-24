@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useGuestOnly } from '@/hooks/useAuth'
@@ -8,6 +8,14 @@ import { signInWithCustomToken } from 'firebase/auth'
 import { auth } from '@/lib/firebase/config'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
+  )
+}
+
+function LoginPageContent() {
   const router  = useRouter()
   const params  = useSearchParams()
   useGuestOnly()

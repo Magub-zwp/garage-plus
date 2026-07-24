@@ -1,11 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { getBooking } from '@/lib/firebase/firestore'
 
 export default function BookSuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <BookSuccessContent />
+    </Suspense>
+  )
+}
+
+function BookSuccessContent() {
   useAuth()
   const params  = useSearchParams()
   const id      = params.get('id')
