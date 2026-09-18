@@ -4,6 +4,7 @@ import Link from 'next/link'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, query, where, orderBy, onSnapshot, limit } from 'firebase/firestore'
+import { Calendar, Wrench, CheckCircle2, Bell, AlertCircle, ArrowRight } from 'lucide-react'
 
 const BDG = { pending:'bdg-wait', confirmed:'bdg-wait', repairing:'bdg-rep', done:'bdg-done', cancelled:'bdg-hold' }
 const BLB = { pending:'รอยืนยัน', confirmed:'ยืนยัน', repairing:'ซ่อม', done:'เสร็จ', cancelled:'ยกเลิก' }
@@ -78,10 +79,10 @@ export default function DashboardPage() {
   }, [])
 
   const STAT_CARDS = [
-    { label:'คิววันนี้',    value: stats.queue,     sub:'การจองทั้งหมด',   icon:'📅' },
-    { label:'กำลังซ่อม',   value: stats.repairing,  sub:'รถในอู่ตอนนี้',   icon:'🔧', color:'var(--acc)' },
-    { label:'เสร็จวันนี้',  value: stats.done,       sub:'ส่งมอบแล้ว',      icon:'✓',  color:'var(--grn)' },
-    { label:'รอยืนยัน',    value: stats.pending,     sub:'การจองใหม่',      icon:'🔔', color:'var(--err)' },
+    { label:'คิววันนี้',    value: stats.queue,     sub:'การจองทั้งหมด',   Icon: Calendar,     color:'var(--t1)',  bg:'var(--s2)' },
+    { label:'กำลังซ่อม',   value: stats.repairing,  sub:'รถในอู่ตอนนี้',   Icon: Wrench,       color:'var(--acc)', bg:'var(--adim)' },
+    { label:'เสร็จวันนี้',  value: stats.done,       sub:'ส่งมอบแล้ว',      Icon: CheckCircle2, color:'var(--grn)', bg:'var(--gdim)' },
+    { label:'รอยืนยัน',    value: stats.pending,     sub:'การจองใหม่',      Icon: Bell,         color:'var(--err)', bg:'var(--errdim)' },
   ]
 
   return (
@@ -91,7 +92,12 @@ export default function DashboardPage() {
         <p className="text-xs text-t3">{new Date().toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
       </div>
 
-      {err && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim">⚠️ {err}</div>}
+      {err && (
+        <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim flex items-center gap-2">
+          <AlertCircle size={15} className="shrink-0" />
+          <span>{err}</span>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center pt-20">
@@ -102,18 +108,23 @@ export default function DashboardPage() {
         <>
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            {STAT_CARDS.map(s => (
-              <div key={s.label} className="card p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-t2 text-xs uppercase tracking-wider">{s.label}</span>
-                  <span style={{ fontSize:18 }}>{s.icon}</span>
+            {STAT_CARDS.map(s => {
+              const CardIcon = s.Icon
+              return (
+                <div key={s.label} className="card p-4 hover:border-token transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-t2 text-xs uppercase tracking-wider font-medium">{s.label}</span>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: s.bg, color: s.color }}>
+                      <CardIcon size={16} strokeWidth={2} />
+                    </div>
+                  </div>
+                  <div className="font-syne text-2xl font-extrabold" style={{ color:s.color||'var(--t1)' }}>
+                    {s.value}
+                  </div>
+                  <div className="text-t3 text-xs mt-1">{s.sub}</div>
                 </div>
-                <div className="font-syne text-2xl font-extrabold" style={{ color:s.color||'var(--t1)' }}>
-                  {s.value}
-                </div>
-                <div className="text-t3 text-xs mt-1">{s.sub}</div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -121,7 +132,9 @@ export default function DashboardPage() {
             <div>
               <div className="flex justify-between items-center mb-3">
                 <h2 className="font-syne text-sm font-bold text-t1">คิววันนี้</h2>
-                <Link href="/staff/queue" className="text-xs text-acc font-semibold">ดูทั้งหมด →</Link>
+                <Link href="/staff/queue" className="text-xs text-acc font-semibold flex items-center gap-1 hover:underline">
+                  ดูทั้งหมด <ArrowRight size={12} />
+                </Link>
               </div>
               <div className="card overflow-hidden">
                 {todayQueue.length === 0 ? (
@@ -159,7 +172,9 @@ export default function DashboardPage() {
             <div>
               <div className="flex justify-between items-center mb-3">
                 <h2 className="font-syne text-sm font-bold text-t1">การจองรอยืนยัน</h2>
-                <Link href="/staff/queue" className="text-xs text-acc font-semibold">ดูทั้งหมด →</Link>
+                <Link href="/staff/queue" className="text-xs text-acc font-semibold flex items-center gap-1 hover:underline">
+                  ดูทั้งหมด <ArrowRight size={12} />
+                </Link>
               </div>
               <div className="card overflow-hidden" style={{ border:'0.5px solid var(--abrd)' }}>
                 {newBooks.length === 0 ? (

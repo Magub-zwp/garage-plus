@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useGuestOnly } from '@/hooks/useAuth'
 import { registerWithEmail, getDefaultRoute } from '@/lib/firebase/auth'
+import AppIcon from '@/components/common/AppIcon'
 
 function getPwStrength(pw) {
   let s = 0
@@ -90,14 +91,18 @@ export default function SignUpPage() {
   )
 // If registration is successful, show confirmation message
   return (
-    <div className="min-h-screen bg-token flex flex-col px-5 py-8">
+    <div className="min-h-screen bg-token flex flex-col justify-center px-5 py-8 max-w-md mx-auto w-full">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
-          style={{ background: 'var(--adim)', border: '1.5px solid var(--abrd)' }}>⚙️</div>
-        <span className="font-syne text-lg font-extrabold text-t1">Garage<span className="text-acc">Plus</span></span>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-adim border border-acc/40 shadow-xs">
+          <span className="text-2xl inline-block animate-gearspin">⚙️</span>
+        </div>
+        <div>
+          <span className="font-syne text-xl font-extrabold text-t1 block leading-tight">Garage<span className="text-acc">Plus</span></span>
+          <span className="text-[10px] text-t3 tracking-wider uppercase font-medium">179 Auto · Doi Saket</span>
+        </div>
       </div>
       <h2 className="font-syne text-2xl font-bold text-t1 mb-1">สมัครสมาชิก</h2>
-      <p className="text-t2 text-sm mb-5">179 Auto · Doi Saket · <span className="text-err text-xs">* จำเป็นต้องกรอก</span></p>
+      <p className="text-t2 text-sm mb-5">เข้าใช้งานระบบนัดหมายและติดตามงานซ่อม</p>
 
       {errors.submit && (
         <div className="mb-4 p-3 rounded-xl text-sm text-err"

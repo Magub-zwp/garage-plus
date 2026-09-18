@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase/config'
 import { doc, getDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
 import { STEPS, STATUS_MAP, statusIndex, canTransition, REPAIRING_IDX } from '@/lib/repairStatus'
 import { notifyRepairStatus, syncBookingStatus, pushNotification } from '@/lib/notify'
+import { Wrench, ChevronLeft, ArrowLeft, AlertCircle } from 'lucide-react'
 
 export default function MechRepairPage() {
   return (
@@ -109,17 +110,28 @@ function MechRepairContent() {
   return (
     <DashboardShell requiredRole="mechanic">
       <div className="flex items-center gap-3 mb-5">
-        <Link href="/staff/mech/queue" className="text-t2 text-sm">‹ กลับ</Link>
+        <Link href="/staff/mech/queue" className="text-t2 hover:text-t1 text-sm flex items-center gap-1">
+          <ChevronLeft size={16} /> กลับ
+        </Link>
         <h1 className="font-syne text-xl font-bold text-t1">บันทึกงานซ่อม</h1>
       </div>
 
-      {err && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim">{err}</div>}
+      {err && (
+        <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim flex items-center gap-2">
+          <AlertCircle size={15} className="shrink-0" />
+          <span>{err}</span>
+        </div>
+      )}
 
       {!repairId ? (
-        <div className="card p-10 text-center">
-          <span className="text-4xl mb-3 block">🔧</span>
+        <div className="card p-10 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-adim text-acc flex items-center justify-center mb-3">
+            <Wrench size={24} strokeWidth={2} />
+          </div>
           <p className="font-syne text-sm font-bold text-t1 mb-2">ไม่ได้เลือกงานซ่อม</p>
-          <Link href="/staff/mech/queue" className="text-xs text-acc font-semibold">← กลับไปที่คิว</Link>
+          <Link href="/staff/mech/queue" className="text-xs text-acc font-semibold flex items-center gap-1 hover:underline">
+            <ArrowLeft size={14} /> กลับไปที่คิว
+          </Link>
         </div>
       ) : loading ? (
         <div className="flex justify-center pt-20">

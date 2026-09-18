@@ -33,10 +33,10 @@ export default function EditProfilePage() {
   }
   
   return (
-    <div className="page-container pb-24">
-      <div className="page-header">
+    <div className="page-container pb-24 md:pb-12 pt-2 md:pt-4 px-4 md:px-0 max-w-xl mx-auto">
+      <div className="page-header px-0 mb-2">
         <Link href="/profile" className="back-btn">‹</Link>
-        <h1 className="page-title">แก้ไขโปรไฟล์</h1>
+        <h1 className="page-title text-base md:text-xl font-bold">แก้ไขโปรไฟล์</h1>
       </div>
       <div className="flex flex-col items-center py-5">
         <div className="w-16 h-16 rounded-full flex items-center justify-center font-syne text-2xl font-extrabold text-white mb-2"

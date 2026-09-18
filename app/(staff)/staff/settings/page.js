@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase/config'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { changePassword } from '@/lib/firebase/auth'
 import { getSession } from '@/lib/staff/session'
+import { Moon, Sun, KeyRound, Building2, Check } from 'lucide-react'
 
 export default function StaffSettingsPage() {
   const router  = useRouter()
@@ -63,32 +64,39 @@ export default function StaffSettingsPage() {
       setPwMsg('✅ เปลี่ยนรหัสผ่านสำเร็จ')
       setPw({ current:'', newPw:'', confirm:'' })
     } catch(e) {
-      const msgs = { 'auth/wrong-password':'รหัสผ่านปัจจุบันไม่ถูกต้อง' }
-      setPwMsg(msgs[e.code] || e.message)
+      const msgs = { 'auth/wrong-password':'รหัสผ่านปัจจุบันไม่ถูกต้อง', 'auth/weak-password':'รหัสผ่านง่ายเกินไป' }
+      setPwMsg('❌ ' + (msgs[e.code] || e.message))
     } finally { setPwSaving(false) }
   }
 
   const toggleDark = () => {
     const next = !isDark
     setIsDark(next)
-    document.documentElement.classList.toggle('dark', next)
     localStorage.setItem('gp_staff_dark', next ? '1' : '0')
+    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light')
   }
 
-  const DAYS_TH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์']
+  const DAYS_TH = ['อา','จ','อ','พ','พฤ','ศ','ส']
 
   return (
     <DashboardShell>
       <div className="flex justify-between items-center mb-6">
         <h1 className="font-syne text-xl font-bold text-t1">ตั้งค่า</h1>
-        {saved && <span className="text-xs text-grn font-bold">✓ บันทึกแล้ว</span>}
+        {saved && (
+          <span className="text-xs text-grn font-bold flex items-center gap-1">
+            <Check size={14} /> บันทึกแล้ว
+          </span>
+        )}
       </div>
 
       <div className="max-w-2xl flex flex-col gap-5">
 
         {/* Display */}
         <div className="card p-5">
-          <h2 className="font-syne text-sm font-bold text-t1 mb-4">การแสดงผล</h2>
+          <div className="flex items-center gap-2 mb-4">
+            {isDark ? <Moon size={16} className="text-acc" /> : <Sun size={16} className="text-acc" />}
+            <h2 className="font-syne text-sm font-bold text-t1">การแสดงผล</h2>
+          </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-t1">Dark Mode</span>
             <button onClick={toggleDark}
@@ -102,7 +110,10 @@ export default function StaffSettingsPage() {
 
         {/* Change Password */}
         <div className="card p-5">
-          <h2 className="font-syne text-sm font-bold text-t1 mb-4">เปลี่ยนรหัสผ่าน</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <KeyRound size={16} className="text-acc" />
+            <h2 className="font-syne text-sm font-bold text-t1">เปลี่ยนรหัสผ่าน</h2>
+          </div>
           {pwMsg && (
             <div className="mb-3 p-2.5 rounded-xl text-xs"
               style={{ background: pwMsg.startsWith('✅')?'var(--gdim)':'var(--errdim)', color: pwMsg.startsWith('✅')?'var(--grn)':'var(--err)' }}>
@@ -130,7 +141,10 @@ export default function StaffSettingsPage() {
         {/* Admin: Shop settings */}
         {isAdmin && (
           <div className="card p-5">
-            <h2 className="font-syne text-sm font-bold text-t1 mb-4">ข้อมูลอู่ (Admin เท่านั้น)</h2>
+            <div className="flex items-center gap-2 mb-4">
+              <Building2 size={16} className="text-acc" />
+              <h2 className="font-syne text-sm font-bold text-t1">ข้อมูลอู่ (Admin เท่านั้น)</h2>
+            </div>
             {loading ? (
               <div className="flex justify-center py-8">
                 <span className="inline-block w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"

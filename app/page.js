@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/context/AuthContext'
 import { getDefaultRoute } from '@/lib/firebase/auth'
+import AppIcon from '@/components/common/AppIcon'
 
 export default function RootPage() {
   const { loading, isLoggedIn, uid } = useAuthContext()
@@ -34,8 +35,7 @@ export default function RootPage() {
   }, [loading, isLoggedIn, uid])
 
   return (
-    <div className="min-h-screen bg-tok flex flex-col items-center justify-center"
-      style={{ maxWidth: 430, margin: '0 auto' }}>
+    <div className="min-h-screen bg-tok flex flex-col items-center justify-center max-w-md mx-auto px-6">
       <div className="w-20 h-20 rounded-full bg-adim flex items-center justify-center mb-5 animate-gearspin"
         style={{ border: '2px solid var(--abrd)' }}>
         <span style={{ fontSize: 40 }}>⚙️</span>

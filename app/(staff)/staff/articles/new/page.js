@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { createArticle } from '@/lib/firebase/firestore'
 import { getSession } from '@/lib/staff/session'
+import { ChevronLeft, Link2, FileText, Sparkles, AlertCircle, Send } from 'lucide-react'
 
 const CATS = ['ดูแลรักษา','Tips','โปรโมชั่น','ฤดูกาล','ความปลอดภัย']
 
@@ -22,7 +23,7 @@ export default function NewArticlePage() {
   const [featured,  setFeatured]  = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
-// Function to fetch metadata from given URL and populate form
+
   const fetchMeta = async () => {
     if (!url.trim()) { setFetchError('กรุณากรอก URL'); return }
     setFetching(true); setFetchError(''); setPreview(null)
@@ -30,51 +31,68 @@ export default function NewArticlePage() {
       const res  = await fetch(`/api/articles/meta?url=${encodeURIComponent(url.trim())}`)
       const data = await res.json()
       if (!data.ok) { setFetchError(data.error || 'ดึงข้อมูลไม่ได้'); return }
-      const d = data.data
-      setForm({ title:d.title, description:d.description, thumbnailUrl:d.image, sourceName:d.siteName, sourceFavicon:d.favicon, content:'' })
-      setPreview(d)
+      setForm(prev => ({ ...prev, title: data.title||prev.title, description: data.description||prev.description, thumbnailUrl: data.image||prev.thumbnailUrl, sourceName: data.siteName||prev.sourceName, sourceFavicon: data.favicon||prev.sourceFavicon }))
+      setPreview(data)
     } catch { setFetchError('เกิดข้อผิดพลาด กรุณาลองใหม่') }
     finally { setFetching(false) }
   }
-// Function to handle save button click, with option to publish immediately or save as draft
-  const handleSave = async (publish) => {
+
+  const handleSave = async (published = true) => {
     if (!form.title.trim()) { setError('กรุณากรอกชื่อบทความ'); return }
     if (!category) { setError('กรุณาเลือกหมวดหมู่'); return }
-    setError(''); setSaving(true)
+    setSaving(true); setError('')
     try {
       const session = getSession()
-      const tagArr  = tags.split(',').map(t=>t.trim()).filter(Boolean)
       await createArticle({
-        type, sourceUrl:type==='external'?url.trim():'',
-        sourceName:form.sourceName, sourceFavicon:form.sourceFavicon,
-        title:form.title, description:form.description,
-        thumbnailUrl:form.thumbnailUrl, content:form.content,
-        category, tags:tagArr, published:publish, featured,
-        addedBy:session?.uid||'', scrapedAt:type==='external'?new Date():null,
+        ...form,
+        type,
+        url: type === 'external' ? url.trim() : null,
+        category,
+        tags: tags ? tags.split(',').map(t=>t.trim()).filter(Boolean) : [],
+        published,
+        featured,
+        author: session?.name || 'Garage Plus Staff',
       })
-      router.replace('/staff/articles?refresh=' + Date.now())
-    } catch (e) { setError(e.message) }
+      router.replace('/staff/articles')
+    } catch(e) { setError(e.message) }
     finally { setSaving(false) }
   }
 
   return (
     <DashboardShell requiredRole="admin">
       <div className="flex items-center gap-3 mb-5">
-        <Link href="/staff/articles" className="text-t2 hover:text-t1 text-sm">‹ กลับ</Link>
+        <Link href="/staff/articles" className="text-t2 hover:text-t1 text-sm flex items-center gap-1">
+          <ChevronLeft size={16} /> กลับ
+        </Link>
         <h1 className="font-syne text-xl font-bold text-t1">เพิ่มบทความ / URL</h1>
       </div>
 
       {/* Type selector */}
       <div className="grid grid-cols-2 gap-3 mb-5 max-w-lg">
-        {[{k:'external',icon:'🔗',t:'วาง URL จากเว็บ',s:'ดึง metadata อัตโนมัติ'},{k:'internal',icon:'📝',t:'เขียนเอง',s:'สร้าง content ในระบบ'}].map(tp=>(
-          <button key={tp.k} onClick={()=>setType(tp.k)}
-            className="rounded-xl p-4 text-left cursor-pointer border-none"
-            style={{ background:type===tp.k?'var(--adim)':'var(--surf)', border:`0.5px solid ${type===tp.k?'var(--abrd)':'var(--brd2)'}` }}>
-            <div style={{ fontSize:22 }} className="mb-2">{tp.icon}</div>
-            <div className="font-syne text-sm font-bold text-t1">{tp.t}</div>
-            <div className="text-t3 text-xs mt-1">{tp.s}</div>
-          </button>
-        ))}
+        {[
+          { k:'external', Icon:Link2, t:'วาง URL จากเว็บ', s:'ดึง metadata อัตโนมัติ' },
+          { k:'internal', Icon:FileText, t:'เขียนเอง', s:'สร้าง content ในระบบ' }
+        ].map(tp => {
+          const isSel = type === tp.k
+          return (
+            <button key={tp.k} onClick={()=>setType(tp.k)}
+              className="rounded-xl p-4 text-left cursor-pointer border-none transition-colors"
+              style={{
+                background: isSel ? 'var(--adim)' : 'var(--surf)',
+                border: `1.5px solid ${isSel ? 'var(--acc)' : 'var(--brd2)'}`
+              }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
+                style={{
+                  background: isSel ? 'var(--acc)' : 'var(--s2)',
+                  color: isSel ? '#ffffff' : 'var(--t2)'
+                }}>
+                <tp.Icon size={18} strokeWidth={2} />
+              </div>
+              <div className="font-syne text-sm font-bold text-t1">{tp.t}</div>
+              <div className="text-t3 text-xs mt-1">{tp.s}</div>
+            </button>
+          )
+        })}
       </div>
 
       <div className="max-w-2xl flex flex-col gap-5">
@@ -85,12 +103,21 @@ export default function NewArticlePage() {
             <div className="flex gap-2">
               <input className="input-field flex-1" type="url" placeholder="https://www.headlightmag.com/..." value={url} onChange={e=>setUrl(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchMeta()} />
               <button onClick={fetchMeta} disabled={fetching}
-                className="px-4 py-2 rounded-xl text-sm font-bold text-white border-none cursor-pointer flex-shrink-0 flex items-center gap-2"
+                className="px-4 py-2 rounded-xl text-sm font-bold text-white border-none cursor-pointer flex-shrink-0 flex items-center gap-1.5"
                 style={{ background:'var(--acc)' }}>
-                {fetching?<><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>ดึง...</>:'✨ ดึงข้อมูล'}
+                {fetching ? (
+                  <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>ดึง...</>
+                ) : (
+                  <><Sparkles size={14} /><span>ดึงข้อมูล</span></>
+                )}
               </button>
             </div>
-            {fetchError && <p className="text-xs text-err mt-2">⚠️ {fetchError}</p>}
+            {fetchError && (
+              <p className="text-xs text-err mt-2 flex items-center gap-1.5">
+                <AlertCircle size={13} />
+                <span>{fetchError}</span>
+              </p>
+            )}
             <p className="text-xs text-t3 mt-2">รองรับ: Headlight Magazine, Pantip, Sanook Auto, YouTube, และเว็บส่วนใหญ่ที่มี Open Graph tags</p>
 
             {/* Preview */}
@@ -113,7 +140,12 @@ export default function NewArticlePage() {
         {/* Editable Fields */}
         <div className="card p-5">
           <h3 className="font-syne text-sm font-bold text-t1 mb-4">{type==='external'?'ตรวจสอบ/แก้ไขข้อมูล':'กรอกข้อมูลบทความ'}</h3>
-          {error && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim" style={{ border:'0.5px solid rgba(232,92,58,.25)' }}>⚠️ {error}</div>}
+          {error && (
+            <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim flex items-center gap-2" style={{ border:'0.5px solid rgba(232,92,58,.25)' }}>
+              <AlertCircle size={15} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <div className="mb-3">
             <label className="field-label">ชื่อบทความ <span className="required-mark">*</span></label>
@@ -165,7 +197,11 @@ export default function NewArticlePage() {
             <button onClick={()=>handleSave(true)} disabled={saving}
               className="flex-1 py-3 rounded-xl text-sm font-bold text-white border-none cursor-pointer flex items-center justify-center gap-2"
               style={{ background:'var(--acc)' }}>
-              {saving?<><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>บันทึก...</>:'🚀 เผยแพร่ทันที'}
+              {saving ? (
+                <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>บันทึก...</>
+              ) : (
+                <><Send size={15} /><span>เผยแพร่ทันที</span></>
+              )}
             </button>
             <button onClick={()=>handleSave(false)} disabled={saving}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-t1 border-none cursor-pointer"

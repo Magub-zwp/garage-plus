@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { RotateCw, CheckCircle2, Trash2, AlertCircle } from 'lucide-react'
 
 export default function AssignPage() {
   const [unassigned, setUnassigned] = useState([])
@@ -74,12 +75,18 @@ export default function AssignPage() {
           <p className="text-xs text-t2 mt-0.5">{unassigned.length} งานรอมอบหมาย</p>
         </div>
         <button onClick={fetchAll}
-          className="text-xs text-acc font-semibold cursor-pointer border-none bg-transparent">
-          🔄 รีเฟรช
+          className="text-xs text-acc font-semibold cursor-pointer border-none bg-transparent flex items-center gap-1 hover:underline">
+          <RotateCw size={13} />
+          <span>รีเฟรช</span>
         </button>
       </div>
 
-      {err && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim">{err}</div>}
+      {err && (
+        <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim flex items-center gap-2">
+          <AlertCircle size={15} className="shrink-0" />
+          <span>{err}</span>
+        </div>
+      )}
       {msg && (
         <div className="mb-4 p-3 rounded-xl text-xs"
           style={{ background:msg.startsWith('✅')?'var(--gdim)':'var(--errdim)', color:msg.startsWith('✅')?'var(--grn)':'var(--err)' }}>
@@ -107,8 +114,10 @@ export default function AssignPage() {
             style={{ borderColor:'var(--acc)', borderTopColor:'transparent' }}/>
         </div>
       ) : unassigned.length === 0 ? (
-        <div className="card p-10 text-center">
-          <span className="text-4xl mb-3 block">✅</span>
+        <div className="card p-10 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-gdim text-grn flex items-center justify-center mb-3">
+            <CheckCircle2 size={24} strokeWidth={2} />
+          </div>
           <p className="font-syne text-sm font-bold text-t1 mb-1">ไม่มีงานรอมอบหมาย</p>
           <p className="text-xs text-t2">งานทุกชิ้นถูกมอบหมายแล้ว</p>
         </div>
@@ -127,9 +136,9 @@ export default function AssignPage() {
                   <span className="bdg bdg-wait">{r.status}</span>
                   <button onClick={() => handleDelete(r.id, r.plate||r.carPlate)}
                     disabled={saving[r.id]}
-                    className="text-xs px-1.5 py-0.5 rounded-lg border-none cursor-pointer"
+                    className="p-1.5 rounded-lg border-none cursor-pointer flex items-center justify-center"
                     style={{ background:'var(--errdim)', color:'var(--err)' }} title="ลบรายการนี้ (รับซ้ำ/ผิดพลาด)">
-                    ✕
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>

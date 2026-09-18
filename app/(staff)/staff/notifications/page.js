@@ -22,7 +22,8 @@ export default function StaffNotificationsPage() {
         // Fallback: ถ้า rules ไม่อนุญาต query ทั้งหมด ให้ query เฉพาะของตัวเอง
         onSnapshot(
           query(collection(db,'notifications'), where('userId','==',uid), orderBy('createdAt','desc'), limit(50)),
-          snap => { setNotifs(snap.docs.map(d => ({id:d.id,...d.data()}))); setLoading(false) }
+          snap => { setNotifs(snap.docs.map(d => ({id:d.id,...d.data()}))); setLoading(false) },
+          err => { console.warn('[staff notifications fallback]', err.message); setLoading(false) }
         )
       }
     )

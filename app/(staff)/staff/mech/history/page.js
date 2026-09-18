@@ -4,6 +4,7 @@ import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore'
 import { getSession } from '@/lib/staff/session'
+import { Coins, FolderArchive } from 'lucide-react'
 
 export default function MechHistoryPage() {
   const [history,  setHistory]  = useState([])
@@ -54,7 +55,9 @@ export default function MechHistoryPage() {
               ฿{totalRevenue.toLocaleString()}
             </p>
           </div>
-          <span className="text-3xl">💰</span>
+          <div className="w-10 h-10 rounded-xl bg-grn/15 text-grn flex items-center justify-center">
+            <Coins size={22} strokeWidth={2} />
+          </div>
         </div>
       )}
 
@@ -73,8 +76,10 @@ export default function MechHistoryPage() {
             style={{ borderColor:'var(--acc)', borderTopColor:'transparent' }}/>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card p-8 text-center">
-          <span className="text-3xl mb-3 block">📂</span>
+        <div className="card p-8 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-s2 flex items-center justify-center text-t3 mb-3">
+            <FolderArchive size={24} strokeWidth={1.75} />
+          </div>
           <p className="font-syne text-sm font-bold text-t1 mb-1">
             {search ? 'ไม่พบผลการค้นหา' : 'ยังไม่มีประวัติการซ่อม'}
           </p>

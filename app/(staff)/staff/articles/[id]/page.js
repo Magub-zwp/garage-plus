@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { getArticle, updateArticle } from '@/lib/firebase/firestore'
+import { ChevronLeft, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 const CATS = ['ดูแลรักษา','Tips','โปรโมชั่น','ฤดูกาล','ความปลอดภัย']
 
@@ -23,7 +24,7 @@ export default function EditArticlePage() {
     try {
       await updateArticle(id, { title:art.title, description:art.description, thumbnailUrl:art.thumbnailUrl, sourceName:art.sourceName, content:art.content||'', category:art.category, published:art.published, featured:art.featured||false })
       setSuccess(true); setTimeout(()=>router.replace('/staff/articles'), 1000)
-    } catch(e) { setError(e.message) }
+    } catch (e) { setError(e.message) }
     finally { setSaving(false) }
   }
 
@@ -32,13 +33,25 @@ export default function EditArticlePage() {
   return (
     <DashboardShell requiredRole="admin">
       <div className="flex items-center gap-3 mb-5">
-        <Link href="/staff/articles" className="text-t2 text-sm">‹ กลับ</Link>
+        <Link href="/staff/articles" className="text-t2 hover:text-t1 text-sm flex items-center gap-1">
+          <ChevronLeft size={16} /> กลับ
+        </Link>
         <h1 className="font-syne text-xl font-bold text-t1">แก้ไขบทความ</h1>
       </div>
       {art && (
         <div className="max-w-2xl card p-5">
-          {error && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim">⚠️ {error}</div>}
-          {success && <div className="mb-4 p-3 rounded-xl text-xs text-grn bg-gdim">✓ บันทึกสำเร็จ กำลังกลับ...</div>}
+          {error && (
+            <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim flex items-center gap-2">
+              <AlertCircle size={15} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 rounded-xl text-xs text-grn bg-gdim flex items-center gap-2">
+              <CheckCircle2 size={15} className="shrink-0" />
+              <span>บันทึกสำเร็จ กำลังกลับ...</span>
+            </div>
+          )}
           {[{k:'title',l:'ชื่อบทความ',req:true},{k:'description',l:'คำอธิบาย'},{k:'thumbnailUrl',l:'URL รูปภาพ'},{k:'sourceName',l:'ชื่อเว็บต้นทาง'}].map(f=>(
             <div key={f.k} className="mb-3">
               <label className="field-label">{f.l} {f.req&&<span className="required-mark">*</span>}</label>

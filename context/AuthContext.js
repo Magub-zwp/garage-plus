@@ -35,10 +35,18 @@ export function AuthProvider({ children }) {
 
         // ล้าง listener เก่าก่อน แล้วฟัง userDoc ของ uid ใหม่แบบ real-time
         if (unsubUser) unsubUser()
-        unsubUser = listenUser(fbUser.uid, (doc) => {
-          setUserDoc(doc)
-          setLoading(false)
-        })
+        unsubUser = listenUser(
+          fbUser.uid,
+          (doc) => {
+            setUserDoc(doc)
+            setLoading(false)
+          },
+          (err) => {
+            console.warn('[AuthContext] userDoc listen error (staff or permission):', err.message)
+            setUserDoc(null)
+            setLoading(false)
+          }
+        )
       })
 
       return () => {

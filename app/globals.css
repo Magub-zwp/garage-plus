@@ -274,8 +274,14 @@ body {
   --bldim: rgba(24,95,165,.14);
 }
 
+/* Responsive page-container */
 .page-container {
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 768px) {
+  .page-container {
+    padding-bottom: 2.5rem;
+  }
 }
 
 /* BottomNav ติด bottom อย่างถูกต้องบน iPhone */
@@ -289,17 +295,3 @@ body {
   z-index: 1;
 }
 
-.page-container {
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-}
-
-/* BottomNav ติด bottom อย่างถูกต้องบน iPhone */
-.bottom-nav {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* ป้องกัน z-index ของ card บัง quick-action buttons */
-.quick-action-grid {
-  position: relative;
-  z-index: 1;
-}

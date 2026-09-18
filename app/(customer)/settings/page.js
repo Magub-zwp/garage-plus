@@ -7,6 +7,7 @@ import { useUser } from '@/hooks/useUser'
 import { updateUserDocument } from '@/lib/firebase/firestore'
 import { deleteAllUserData } from '@/lib/firebase/deleteUserData'
 import BottomNav from '@/components/customer/BottomNav'
+import AppIcon from '@/components/common/AppIcon'
 
 function Toggle({ on, onChange }) {
   return (
@@ -59,12 +60,12 @@ export default function SettingsPage() {
   }
   // Handle account deletion with password confirmation
   return (
-    <div className="page-container pb-24">
-      <div className="page-header"><Link href="/profile" className="back-btn">‹</Link><h1 className="page-title">การตั้งค่า</h1>
+    <div className="page-container pb-24 md:pb-12 pt-2 md:pt-4 px-4 md:px-0 max-w-2xl mx-auto">
+      <div className="page-header px-0 mb-3"><Link href="/profile" className="back-btn">‹</Link><h1 className="page-title text-base md:text-xl font-bold">การตั้งค่า</h1>
         {saving && <span className="text-xs text-t3">กำลังบันทึก...</span>}
         {saved  && <span className="text-xs text-grn">บันทึกแล้ว ✓</span>}
       </div>
-      <div className="px-4 pt-2">
+      <div className="pt-2">
         <p className="text-xs font-bold text-t3 uppercase tracking-widest mb-2">การแสดงผล</p>
         {[
           { icon:'🌙', bg:'rgba(59,130,246,.1)', title:'โหมดสี', sub:'Dark / Light', right:
@@ -88,9 +89,9 @@ export default function SettingsPage() {
   // Notification preferences section
         <p className="text-xs font-bold text-t3 uppercase tracking-widest mb-2 mt-4">การแจ้งเตือน</p>
         {[
-          { k:'status',      icon:'🔧', bg:'var(--adim)',              title:'อัปเดตสถานะซ่อม' },
-          { k:'promo',       icon:'🎁', bg:'var(--gdim)',              title:'โปรโมชั่น & ส่วนลด' },
-          { k:'maintenance', icon:'📅', bg:'rgba(59,130,246,.1)',      title:'เตือนบำรุงรักษา' },
+          { k:'status',      icon:<AppIcon name="status" size={18} />, bg:'var(--adim)',              title:'อัปเดตสถานะซ่อม' },
+          { k:'promo',       icon:<AppIcon name="promo" size={18} />, bg:'var(--gdim)',              title:'โปรโมชั่น & ส่วนลด' },
+          { k:'maintenance', icon:<AppIcon name="book" size={18} />, bg:'rgba(59,130,246,.1)',      title:'เตือนบำรุงรักษา' },
           { k:'line',        icon:'💬', bg:'rgba(168,85,247,.1)',      title:'แจ้งเตือนผ่าน LINE' },
         ].map(({ k, icon, bg, title }) => (
           <div key={k} className="profile-row">

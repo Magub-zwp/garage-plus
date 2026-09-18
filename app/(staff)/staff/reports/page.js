@@ -3,13 +3,18 @@ import { useState, useEffect } from 'react'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import { Coins, CheckCircle2, TrendingUp, Calendar, AlertCircle } from 'lucide-react'
 
-function StatCard({ label, value, sub, color, icon }) {
+function StatCard({ label, value, sub, color, bg, Icon }) {
   return (
-    <div className="card p-4">
+    <div className="card p-4 hover:border-token transition-colors">
       <div className="flex justify-between items-start mb-2">
-        <span className="text-t2 text-xs uppercase tracking-wider">{label}</span>
-        <span style={{ fontSize:18 }}>{icon}</span>
+        <span className="text-t2 text-xs uppercase tracking-wider font-medium">{label}</span>
+        {Icon && (
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: bg || 'var(--s2)', color: color || 'var(--t1)' }}>
+            <Icon size={16} strokeWidth={2} />
+          </div>
+        )}
       </div>
       <div className="font-syne text-2xl font-extrabold" style={{ color: color||'var(--t1)' }}>{value}</div>
       {sub && <div className="text-t3 text-xs mt-1">{sub}</div>}
@@ -22,6 +27,7 @@ export default function ReportsPage() {
   const [repairs,  setRepairs]  = useState([])
   const [bookings, setBookings] = useState([])
   const [loading,  setLoading]  = useState(true)
+  const [err,      setErr]      = useState('')
 
   useEffect(() => {
     const now = new Date()
@@ -32,17 +38,31 @@ export default function ReportsPage() {
     from.setHours(0, 0, 0, 0)
 
     setLoading(true)
+    setErr('')
     Promise.all([
-      getDocs(query(collection(db,'repairs'),  where('status','==','done'), orderBy('updatedAt','desc'))),
+      // ไม่ใช้ orderBy('updatedAt') ใน Firestore query เพื่อป้องกันปัญหา index error
+      // และทำการ sort เรียงลำดับใน client-side แทน
+      getDocs(query(collection(db,'repairs'), where('status','==','done'))),
       getDocs(query(collection(db,'bookings'), orderBy('createdAt','desc'))),
     ]).then(([rSnap, bSnap]) => {
       const filterDate = d => {
         const ts = d.updatedAt?.toDate?.() || d.createdAt?.toDate?.() || null
         return ts ? ts >= from : false
       }
-      setRepairs(rSnap.docs.map(d => ({id:d.id,...d.data()})).filter(filterDate))
-      setBookings(bSnap.docs.map(d => ({id:d.id,...d.data()})).filter(d => d.status !== 'cancelled').filter(filterDate))
-    }).catch(console.error).finally(() => setLoading(false))
+      const doneRepairs = rSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(filterDate)
+        .sort((a, b) => {
+          const ta = a.updatedAt?.toDate?.()?.getTime() || a.createdAt?.toDate?.()?.getTime() || 0
+          const tb = b.updatedAt?.toDate?.()?.getTime() || b.createdAt?.toDate?.()?.getTime() || 0
+          return tb - ta
+        })
+      setRepairs(doneRepairs)
+      setBookings(bSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => d.status !== 'cancelled').filter(filterDate))
+    }).catch(e => {
+      console.error('[Reports Error]', e)
+      setErr(e.message)
+    }).finally(() => setLoading(false))
   }, [period])
 // คำนวณยอดรายได้รวมจากรายการซ่อมที่เสร็จสิ้นในช่วงเวลาที่เลือก และคำนวณค่าเฉลี่ยรายได้ต่อออเดอร์ รวมถึงสรุปยอดรายได้แยกตามช่างเพื่อแสดงในรายงานสถิติ
   const totalRevenue = repairs.reduce((s,r) =>
@@ -76,6 +96,13 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {err && (
+        <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim flex items-center gap-2">
+          <AlertCircle size={15} className="shrink-0" />
+          <span>{err}</span>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center pt-16">
           <span className="inline-block w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
@@ -86,13 +113,13 @@ export default function ReportsPage() {
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             <StatCard label="รายได้รวม" value={`฿${totalRevenue.toLocaleString()}`}
-              sub={`ใน ${PERIOD_LABEL[period]}`} color="var(--acc)" icon="💰" />
+              sub={`ใน ${PERIOD_LABEL[period]}`} color="var(--acc)" bg="var(--adim)" Icon={Coins} />
             <StatCard label="งานซ่อม" value={repairs.length}
-              sub="เสร็จสิ้น" color="var(--grn)" icon="✅" />
+              sub="เสร็จสิ้น" color="var(--grn)" bg="var(--gdim)" Icon={CheckCircle2} />
             <StatCard label="เฉลี่ย/งาน" value={`฿${avgRevenue.toLocaleString()}`}
-              sub="ต่อออเดอร์" icon="📊" />
+              sub="ต่อออเดอร์" color="var(--t1)" bg="var(--s2)" Icon={TrendingUp} />
             <StatCard label="การจอง" value={bookings.length}
-              sub="ไม่รวมยกเลิก" color="var(--blue,#185FA5)" icon="📅" />
+              sub="ไม่รวมยกเลิก" color="var(--blue,#185FA5)" bg="rgba(24,95,165,0.12)" Icon={Calendar} />
           </div>
 
           {/* By mechanic */}
