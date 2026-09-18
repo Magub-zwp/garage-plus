@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase/config'
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 import { getSession } from '@/lib/staff/session'
 import { ACTIVE_STATUSES } from '@/lib/repairStatus'
+import { CheckCircle2 } from 'lucide-react'
 
 const BDG = { waiting:'bdg-wait', diagnosing:'bdg-wait', awaiting_approval:'bdg-hold', repairing:'bdg-rep', qc:'bdg-hold', done:'bdg-done' }
 const BLB = { waiting:'รอรับรถ', diagnosing:'ตรวจ', awaiting_approval:'รออนุมัติ', repairing:'ซ่อม', qc:'QC', done:'เสร็จ' }
@@ -64,8 +65,10 @@ export default function MechQueuePage() {
             style={{ borderColor:'var(--acc)', borderTopColor:'transparent' }}/>
         </div>
       ) : repairs.length === 0 ? (
-        <div className="card p-10 text-center">
-          <span className="text-4xl mb-3 block">✅</span>
+        <div className="card p-10 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-gdim flex items-center justify-center text-grn mb-3">
+            <CheckCircle2 size={24} strokeWidth={2} />
+          </div>
           <p className="font-syne text-sm font-bold text-t1 mb-1">ไม่มีงานค้างอยู่</p>
           <p className="text-xs text-t2">งานซ่อมทั้งหมดเสร็จสิ้นแล้ว</p>
         </div>

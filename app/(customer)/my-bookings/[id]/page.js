@@ -89,7 +89,7 @@ export default function BookingDetailPage({ params }) {
           { label:'เวลา',           value: `${booking.time} น.` },
           { label:'ทะเบียนรถ',      value: booking.carPlate || '-' },
           { label:'ประเภทงานซ่อม',  value: (booking.serviceType||[]).join(', ') },
-          { label:'ประเภทบริการ',   value: booking.pickupType === 'pickup' ? '🏠 รับรถถึงบ้าน' : '🏪 นำรถมาเอง' },
+          { label:'ประเภทบริการ',   value: booking.pickupType === 'pickup' ? 'บริการรับรถถึงบ้าน' : 'นำรถมาเองที่อู่' },
           booking.note ? { label:'หมายเหตุ', value:booking.note } : null,
         ].filter(Boolean).map(row => (
           <div key={row.label} className="flex justify-between py-2" style={{ borderBottom:'0.5px solid var(--brd)' }}>

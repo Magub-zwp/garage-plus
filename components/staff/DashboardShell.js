@@ -61,6 +61,7 @@ export default function DashboardShell({ children, requiredRole }) {
         isDark={isDark}
         onToggleCollapsed={toggleCollapsed}
         onToggleMobile={() => setMobileOpen(o => !o)}
+        collapsed={collapsed}
       />
 
       <div className="flex flex-1 overflow-hidden relative">

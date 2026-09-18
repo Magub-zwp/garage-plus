@@ -4,6 +4,7 @@ import Link from 'next/link'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, query, orderBy, getDocs, limit, where } from 'firebase/firestore'
+import { Users } from 'lucide-react'
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([])
@@ -46,8 +47,10 @@ export default function CustomersPage() {
             style={{ borderColor:'var(--acc)', borderTopColor:'transparent' }}/>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card p-10 text-center">
-          <span className="text-4xl mb-3 block">👤</span>
+        <div className="card p-10 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-s2 text-t3 flex items-center justify-center mb-3">
+            <Users size={24} strokeWidth={1.75} />
+          </div>
           <p className="font-syne text-sm font-bold text-t1 mb-1">
             {search ? 'ไม่พบลูกค้าที่ค้นหา' : 'ยังไม่มีลูกค้า'}
           </p>

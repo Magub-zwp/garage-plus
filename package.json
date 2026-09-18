@@ -24,6 +24,8 @@
 
     "firebase-admin": "^10.3.0",
 
+    "lucide-react": "^1.46.0",
+
     "next": "^16.2.5",
 
     "node-html-parser": "^6.1.13",

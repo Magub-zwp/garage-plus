@@ -7,6 +7,7 @@ import { doc, getDoc, updateDoc, addDoc, getDocs, collection, query, where, orde
 import Link from 'next/link'
 import { STEPS, STATUS_MAP, ACTIVE_STATUSES, statusIndex, canTransition, REPAIRING_IDX } from '@/lib/repairStatus'
 import { notifyRepairStatus, syncBookingStatus } from '@/lib/notify'
+import { Plus, Trash2, AlertCircle } from 'lucide-react'
 
 export default function RepairsPage() {
   return (
@@ -207,13 +208,19 @@ function RepairsPageContent() {
       <div className="flex justify-between items-center mb-5">
         <h1 className="font-syne text-xl font-bold text-t1">อัปเดตสถานะงานซ่อม</h1>
         <button onClick={() => { setShowCreate(true); setCreateMsg('') }}
-          className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer"
+          className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer flex items-center gap-1.5"
           style={{ background:'var(--acc)' }}>
-          + รับรถเข้าอู่
+          <Plus size={14} />
+          <span>รับรถเข้าอู่</span>
         </button>
       </div>
 
-      {err && <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim">{err}</div>}
+      {err && (
+        <div className="mb-4 p-3 rounded-xl text-xs text-err bg-errdim flex items-center gap-2">
+          <AlertCircle size={15} className="shrink-0" />
+          <span>{err}</span>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center pt-20">
@@ -240,8 +247,10 @@ function RepairsPageContent() {
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <span className="bdg bdg-rep text-xs">{r.status}</span>
                         <button onClick={e => { e.stopPropagation(); handleDeleteRepair(r.id, r.plate || r.carPlate) }}
-                          className="text-xs px-1.5 py-0.5 rounded-lg border-none cursor-pointer"
-                          style={{ background:'var(--errdim)', color:'var(--err)' }} title="ลบรายการนี้">✕</button>
+                          className="p-1 rounded-lg border-none cursor-pointer flex items-center justify-center"
+                          style={{ background:'var(--errdim)', color:'var(--err)' }} title="ลบรายการนี้">
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </div>
                   </div>

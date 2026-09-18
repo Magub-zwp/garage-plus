@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { addCar } from '@/lib/firebase/firestore'
 import BottomNav from '@/components/customer/BottomNav'
+import AppIcon from '@/components/common/AppIcon'
 
 const CAR_TYPES = [
-  { key:'sedan',  icon:'🚗', label:'เก๋ง/SUV'      },
-  { key:'pickup', icon:'🚙', label:'กระบะ'          },
-  { key:'moto',   icon:'🏍️', label:'มอเตอร์ไซค์'   },
-  { key:'van',    icon:'🚐', label:'รถตู้'           },
+  { key:'sedan',  iconName:'car', label:'เก๋ง/SUV'      },
+  { key:'pickup', iconName:'car', label:'กระบะ'          },
+  { key:'moto',   iconName:'car', label:'มอเตอร์ไซค์'   },
+  { key:'van',    iconName:'car', label:'รถตู้'           },
 ]
 const BRANDS = ['Toyota','Honda','Isuzu','Ford','Mazda','Mitsubishi','Nissan','Suzuki','อื่นๆ (ระบุ)']
 
@@ -73,28 +74,30 @@ export default function AddCarPage() {
   }
   
   return (
-    <div className="page-container pb-24">
-      <div className="page-header">
+    <div className="page-container pb-24 md:pb-12 pt-2 md:pt-4 px-4 md:px-0 max-w-xl mx-auto">
+      <div className="page-header px-0 mb-3">
         <Link href="/profile" className="back-btn">‹</Link>
-        <h1 className="page-title">เพิ่มรถคันใหม่</h1>
+        <h1 className="page-title text-base md:text-xl font-bold">เพิ่มรถคันใหม่</h1>
       </div>
 
       {/* Car type */}
-      <p className="field-label px-4 pb-2">ประเภทรถ <span className="required-mark">*</span></p>
-      <div className="grid grid-cols-4 gap-2 px-4 mb-4">
+      <p className="field-label pb-2">ประเภทรถ <span className="required-mark">*</span></p>
+      <div className="grid grid-cols-4 gap-2 mb-4">
         {CAR_TYPES.map((t) => (
           <button key={t.key} onClick={() => setType(t.key)}
-            className="bg-surf rounded-2xl py-3 text-center cursor-pointer border-none"
+            className="bg-surf rounded-2xl py-3 text-center cursor-pointer border-none flex flex-col items-center justify-center transition-all"
             style={type === t.key
               ? { border:'0.5px solid var(--abrd)', background:'var(--adim)' }
               : { border:'0.5px solid var(--brd)' }}>
-            <div className="text-2xl mb-1">{t.icon}</div>
+            <div className="mb-1 flex items-center justify-center">
+              <AppIcon name={t.iconName} size={26} />
+            </div>
             <p className="text-xs font-semibold text-t1 leading-tight">{t.label}</p>
           </button>
         ))}
       </div>
 
-      <div className="px-4">
+      <div>
         {errors.submit && (
           <div className="mb-3 p-3 rounded-xl text-sm text-err"
             style={{ background:'var(--errdim)', border:'0.5px solid rgba(232,92,58,.25)' }}>

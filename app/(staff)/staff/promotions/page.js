@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, query, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore'
+import { Tag, Gift, Plus, CheckCircle2 } from 'lucide-react'
 
 const EMPTY = { name:'', reward:'', condition:'', description:'', active:true }
 
@@ -60,7 +61,7 @@ export default function PromotionsPage() {
   const handleDelete = async (id) => {
     if (!confirm('ลบโปรโมชั่นนี้?')) return
     await deleteDoc(doc(db,'promotions',id))
-    setPromos(prev => prev.filter(x => x.id !== id))
+    setPromos(prev => prev.filter(x => x.id!==id))
   }
 
 
@@ -70,8 +71,11 @@ export default function PromotionsPage() {
       <div className="flex justify-between items-center mb-5">
         <h1 className="font-syne text-xl font-bold text-t1">จัดการโปรโมชั่น</h1>
         <button onClick={openNew}
-          className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer"
-          style={{ background:'var(--acc)' }}>+ เพิ่มโปรโมชั่น</button>
+          className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer flex items-center gap-1.5"
+          style={{ background:'var(--acc)' }}>
+          <Plus size={14} />
+          <span>เพิ่มโปรโมชั่น</span>
+        </button>
       </div>
 
       {loading ? (
@@ -80,11 +84,15 @@ export default function PromotionsPage() {
             style={{ borderColor:'var(--acc)', borderTopColor:'transparent' }}/>
         </div>
       ) : promos.length === 0 ? (
-        <div className="card p-10 text-center">
-          <span className="text-4xl mb-3 block">🎁</span>
+        <div className="card p-10 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-adim text-acc flex items-center justify-center mb-3">
+            <Tag size={24} strokeWidth={2} />
+          </div>
           <p className="font-syne text-sm font-bold text-t1 mb-1">ยังไม่มีโปรโมชั่น</p>
           <p className="text-xs text-t2 mb-4">สร้างโปรโมชั่นแรกเพื่อดึงดูดลูกค้า</p>
-          <button onClick={openNew} className="text-xs text-acc font-semibold">+ เพิ่มโปรโมชั่น</button>
+          <button onClick={openNew} className="text-xs text-acc font-semibold flex items-center gap-1">
+            <Plus size={13} /> เพิ่มโปรโมชั่น
+          </button>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -94,8 +102,18 @@ export default function PromotionsPage() {
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">
                   <p className="font-syne text-sm font-bold text-t1">{p.name}</p>
-                  {p.reward && <p className="text-xs text-acc font-semibold mt-0.5">🎁 {p.reward}</p>}
-                  {p.condition && <p className="text-xs text-t2 mt-1">📌 {p.condition}</p>}
+                  {p.reward && (
+                    <div className="flex items-center gap-1.5 text-xs text-acc font-semibold mt-1">
+                      <Gift size={13} className="shrink-0" />
+                      <span>{p.reward}</span>
+                    </div>
+                  )}
+                  {p.condition && (
+                    <div className="flex items-center gap-1.5 text-xs text-t2 mt-1">
+                      <CheckCircle2 size={13} className="shrink-0 text-t3" />
+                      <span>{p.condition}</span>
+                    </div>
+                  )}
                 </div>
                 <span className={`bdg ml-3 flex-shrink-0 ${p.active ? 'bdg-done' : 'bdg-hold'}`}>
                   {p.active ? 'Active' : 'Inactive'}

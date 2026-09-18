@@ -1,8 +1,12 @@
-// Customer mobile layout — max-width 430px, safe-area-inset
+import CustomerHeader from '@/components/customer/CustomerHeader'
+
 export default function CustomerLayout({ children }) {
   return (
-    <div className="min-h-screen bg-token" style={{ maxWidth:430, margin:'0 auto', position:'relative' }}>
-      {children}
+    <div className="min-h-screen bg-token flex flex-col transition-colors relative">
+      <CustomerHeader />
+      <main className="flex-1 w-full">
+        {children}
+      </main>
     </div>
   )
 }

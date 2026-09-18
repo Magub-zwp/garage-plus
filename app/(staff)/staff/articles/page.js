@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import DashboardShell from '@/components/staff/DashboardShell'
 import Link from 'next/link'
 import { getAllArticles, updateArticle, deleteArticle } from '@/lib/firebase/firestore'
+import { Plus, Newspaper, Link2, FileText } from 'lucide-react'
 
 export default function StaffArticlesPage() {
   return (
@@ -44,8 +45,11 @@ function StaffArticlesPageContent() {
       <div className="flex justify-between items-center mb-5">
         <h1 className="font-syne text-xl font-bold text-t1">จัดการบทความ</h1>
         <Link href="/staff/articles/new">
-          <button className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer"
-            style={{ background:'var(--acc)' }}>+ เพิ่มบทความ / URL</button>
+          <button className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer flex items-center gap-1.5"
+            style={{ background:'var(--acc)' }}>
+            <Plus size={14} />
+            <span>เพิ่มบทความ / URL</span>
+          </button>
         </Link>
       </div>
 
@@ -65,13 +69,25 @@ function StaffArticlesPageContent() {
 
       {/* Filter */}
       <div className="flex gap-2 mb-4">
-        {[{k:'all',l:'ทั้งหมด'},{k:'external',l:'🔗 External'},{k:'internal',l:'📝 Internal'}].map(f => (
-          <button key={f.k} onClick={() => setFilter(f.k)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold border-none cursor-pointer"
-            style={{ background:filter===f.k?'var(--acc)':'var(--surf)', color:filter===f.k?'#fff':'var(--t2)', border:`0.5px solid ${filter===f.k?'var(--acc)':'var(--brd2)'}` }}>
-            {f.l}
-          </button>
-        ))}
+        {[
+          { k:'all',      l:'ทั้งหมด',   Icon: null },
+          { k:'external', l:'External', Icon: Link2 },
+          { k:'internal', l:'Internal', Icon: FileText }
+        ].map(f => {
+          const isSel = filter === f.k
+          return (
+            <button key={f.k} onClick={() => setFilter(f.k)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold border-none cursor-pointer flex items-center gap-1.5"
+              style={{
+                background: isSel ? 'var(--acc)' : 'var(--surf)',
+                color:      isSel ? '#fff' : 'var(--t2)',
+                border:     `0.5px solid ${isSel ? 'var(--acc)' : 'var(--brd2)'}`
+              }}>
+              {f.Icon && <f.Icon size={13} />}
+              <span>{f.l}</span>
+            </button>
+          )
+        })}
       </div>
       {loading ? (
         <div className="flex justify-center pt-16">
@@ -79,8 +95,10 @@ function StaffArticlesPageContent() {
             style={{ borderColor:'var(--acc)', borderTopColor:'transparent' }}/>
         </div>
       ) : shown.length === 0 ? (
-        <div className="card p-10 text-center">
-          <span className="text-4xl mb-3 block">📰</span>
+        <div className="card p-10 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-s2 text-t3 flex items-center justify-center mb-3">
+            <Newspaper size={24} strokeWidth={1.75} />
+          </div>
           <p className="font-syne text-sm font-bold text-t1 mb-1">ยังไม่มีบทความ</p>
           <p className="text-xs text-t2">กด "+ เพิ่มบทความ" เพื่อเริ่มต้น</p>
         </div>

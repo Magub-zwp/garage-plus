@@ -28,17 +28,17 @@ function BookSuccessContent() {
     { k: 'เวลา',          v: `${booking.time} น.` },
     { k: 'รถ',            v: booking.carName || booking.carPlate },
     { k: 'งานซ่อม',      v: (booking.serviceType || []).join(', ') },
-    { k: 'ประเภท',        v: booking.pickupType === 'pickup' ? '🏠 รับถึงบ้าน' : '🏪 นำรถมาเอง' },
+    { k: 'ประเภท',        v: booking.pickupType === 'pickup' ? 'บริการรับรถถึงบ้าน' : 'นำรถมาเองที่อู่' },
     { k: 'เลขที่จอง',    v: booking.bookingRef, accent: true },
   ] : []
 
   return (
-    <div className="min-h-screen bg-token flex flex-col items-center justify-center px-6 text-center">
+    <div className="min-h-screen bg-token flex flex-col items-center justify-center px-6 py-12 text-center max-w-md mx-auto">
       <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-5"
         style={{ background: 'var(--gdim)', border: '2px solid var(--gbrd)' }}>
         ✓
       </div>
-      <h1 className="font-syne text-2xl font-extrabold text-t1 mb-2">จองคิวสำเร็จ! 🎉</h1>
+      <h1 className="font-syne text-2xl font-extrabold text-t1 mb-2">จองคิวสำเร็จ!</h1>
       <p className="text-sm text-t2 leading-relaxed mb-6">
         ระบบได้รับการจองของคุณแล้ว<br />คุณจะได้รับการแจ้งเตือนเมื่ออู่ยืนยัน
       </p>

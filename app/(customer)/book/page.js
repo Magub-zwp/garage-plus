@@ -6,10 +6,20 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
 import { authFetch } from '@/lib/api/authFetch'
 import BottomNav from '@/components/customer/BottomNav'
+import AppIcon from '@/components/common/AppIcon'
 
 const DAYS_TH     = ['อา','จ','อ','พ','พฤ','ศ','ส']
 const OFF_DAYS    = [0, 6] // อาทิตย์, เสาร์
-const SERVICE_TYPES = ['เปลี่ยนน้ำมัน','ตรวจเช็ค','เบรก','ยาง','แบตเตอรี่','อื่นๆ']
+const SERVICE_OPTIONS = [
+  { id: 'เปลี่ยนน้ำมัน', label: 'เปลี่ยนน้ำมันเครื่อง', icon: 'oil' },
+  { id: 'ตรวจเช็ค',     label: 'ตรวจเช็คระยะ/ทั่วไป', icon: 'engine' },
+  { id: 'เบรก',         label: 'ระบบเบรก/ผ้าเบรก',    icon: 'brake' },
+  { id: 'ยาง',         label: 'ยางและตั้งศูนย์',     icon: 'tire' },
+  { id: 'แบตเตอรี่',    label: 'แบตเตอรี่และไฟ',     icon: 'battery' },
+  { id: 'ช่วงล่าง',     label: 'โช้คอัพและช่วงล่าง',  icon: 'shock' },
+  { id: 'ระบบเกียร์',   label: 'เกียร์/ระบบส่งกำลัง', icon: 'gear' },
+  { id: 'อื่นๆ',        label: 'งานซ่อมอื่นๆ',        icon: 'settings' },
+]
 const TIME_SLOTS  = ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00']
 
 function toDateStr(y, m, d) {
@@ -25,15 +35,13 @@ export default function BookPage() {
   const [viewYear,  setViewYear]  = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
 
-  // เวลา 00:00 ของวันนี้ ใช้เทียบว่าวันที่เลือกผ่านไปแล้วหรือยัง (คำนวณครั้งเดียวด้วย useMemo
-  // กันไม่ให้ต้องสร้าง Date object ใหม่ทุกครั้งที่ component re-render)
   const todayMidnight = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
   }, [])
   const [selectedDate, setSelectedDate] = useState(null)
-  const [slotData,  setSlotData]  = useState({}) // { 'HH:mm': { booked, max } }
+  const [slotData,  setSlotData]  = useState({})
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [selectedTime, setSelectedTime] = useState(null)
   const [selectedCar,  setSelectedCar]  = useState(null)
@@ -75,7 +83,7 @@ export default function BookPage() {
   }, [selectedDate, fetchSlots])
 
   // Calendar helpers
-  const daysInMonth  = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const daysInMonth     = new Date(viewYear, viewMonth + 1, 0).getDate()
   const firstDayOfMonth = new Date(viewYear, viewMonth, 1).getDay()
 
   const prevMonth = () => {
@@ -89,7 +97,6 @@ export default function BookPage() {
     setSelectedDate(null)
   }
 
-  // เช็คว่าวันนั้นกดเลือกไม่ได้หรือไม่ (ตรงกับวันหยุดประจำสัปดาห์ หรือเป็นวันที่ผ่านมาแล้ว)
   const isDayDisabled = (day) => {
     const dayOfWeek = (firstDayOfMonth + day - 1) % 7
     const d = new Date(viewYear, viewMonth, day)
@@ -102,13 +109,12 @@ export default function BookPage() {
   }
 
   const handleConfirm = async () => {
-    if (!selectedDate) { setError('กรุณาเลือกวันที่'); return }
+    if (!selectedDate) { setError('กรุณาเลือกวันที่ต้องการนัดหมาย'); return }
     if (!selectedTime) { setError('กรุณาเลือกช่วงเวลา'); return }
     if (services.length === 0) { setError('กรุณาเลือกประเภทงานซ่อมอย่างน้อย 1 รายการ'); return }
-    if (!selectedCar) { setError('กรุณาเพิ่มรถก่อนทำการจอง'); return }
+    if (!selectedCar) { setError('กรุณาเพิ่มรถหรือเลือกรถก่อนทำการจอง'); return }
     setError(''); setSubmitting(true)
     try {
-      // จองผ่าน server (Admin SDK + transaction) — กัน race condition และไม่เชื่อ userId จาก client
       const res = await authFetch('/api/bookings', {
         method: 'POST',
         body: JSON.stringify({
@@ -134,193 +140,342 @@ export default function BookPage() {
     }
   }
 
-  const MONTHS_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
   const MONTHS_TH_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 
   return (
-    <div className="page-container pb-28">
-      <div className="page-header">
+    <div className="page-container pb-28 md:pb-12 pt-2 md:pt-4">
+      
+      {/* Mobile Page Header */}
+      <div className="page-header px-4 md:px-0 mb-2">
         <Link href="/home" className="back-btn">‹</Link>
-        <h1 className="page-title">จองคิวซ่อม</h1>
+        <h1 className="page-title text-base md:text-xl font-bold">จองคิวรับบริการ</h1>
       </div>
 
-      {/* Pickup type */}
-      <p className="field-label px-4 pb-1">ประเภทบริการ <span className="required-mark">*</span></p>
-      <div className="grid grid-cols-2 gap-2 px-4 mb-4">
-        {[{ key:'self', icon:'🏪', title:'นำรถมาเอง', sub:'เข้าอู่ด้วยตัวเอง' },
-          { key:'pickup', icon:'🏠', title:'รับรถถึงบ้าน', sub:'ช่างไปรับ-ส่ง' }].map((p) => (
-          <button key={p.key} onClick={() => setPickupType(p.key)}
-            className="bg-surf rounded-2xl py-3 px-2 text-center border-token cursor-pointer transition-all"
-            style={pickupType === p.key ? { borderColor: 'var(--acc)', background: 'var(--adim)' } : {}}>
-            <div className="text-2xl mb-1">{p.icon}</div>
-            <p className="text-xs font-bold text-t1">{p.title}</p>
-            <p className="text-xs text-t2 mt-0.5">{p.sub}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* Calendar */}
-      <p className="field-label px-4 pb-1">เลือกวันที่ <span className="required-mark">*</span></p>
-      <div className="flex justify-between items-center px-4 mb-2">
-        <button onClick={prevMonth}
-          className="w-7 h-7 bg-s2 rounded-lg flex items-center justify-center text-t2 text-xs cursor-pointer border-none">‹</button>
-        <p className="font-syne text-sm font-bold text-t1">
-          {MONTHS_TH_FULL[viewMonth]} {viewYear + 543}
-        </p>
-        <button onClick={nextMonth}
-          className="w-7 h-7 bg-s2 rounded-lg flex items-center justify-center text-t2 text-xs cursor-pointer border-none">›</button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-0.5 px-4 mb-2">
-        {DAYS_TH.map((d) => (
-          <div key={d} className="text-center py-1 text-xs text-t3 font-semibold">{d}</div>
-        ))}
-        {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-          <div key={`e${i}`} />
-        ))}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day     = i + 1
-          const disabled = isDayDisabled(day)
-          const dateStr  = toDateStr(viewYear, viewMonth, day)
-          const isSelected = selectedDate === dateStr
-          const isToday    = dateStr === toDateStr(today.getFullYear(), today.getMonth(), today.getDate())
-          return (
-            <button key={day} disabled={disabled}
-              onClick={() => setSelectedDate(dateStr)}
-              className="relative flex flex-col items-center py-1.5 rounded-xl transition-all cursor-pointer border-none"
-              style={{
-                background: isSelected ? 'var(--acc)' : isToday ? 'var(--s2)' : 'transparent',
-                opacity: disabled ? 0.3 : 1,
-              }}>
-              <span className="text-xs font-medium"
-                style={{ color: isSelected ? '#fff' : disabled ? 'var(--t3)' : 'var(--t1)' }}>
-                {day}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Time slots */}
-      {selectedDate && (
-        <>
-          <p className="field-label px-4 pb-1 pt-2">ช่วงเวลา <span className="required-mark">*</span></p>
-          {slotsLoading ? (
-            <div className="flex justify-center py-4">
-              <span className="inline-block w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
-                style={{ borderColor: 'var(--acc)', borderTopColor: 'transparent' }} />
-            </div>
-          ) : (
-            <div className="grid grid-cols-4 gap-2 px-4 mb-3">
-              {TIME_SLOTS.map((t) => {
-                const s       = slotData[t]
-                // ถ้า API ไม่ได้ส่ง isFull มาตรงๆ ให้คำนวณเองจากจำนวนที่จองแล้ว/จำนวนรับสูงสุด
-                // เพื่อกันไม่ให้ลูกค้าจองคิวที่เต็มแล้วซ้ำ
-                const isFull  = s ? (s.isFull ?? (s.max != null && s.booked != null ? s.booked >= s.max : false)) : false
-                const isAvail = !isFull
-                const isSel   = selectedTime === t
+      {/* Responsive 2-Column Booking Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 px-4 md:px-0">
+        
+        {/* Left Column (Desktop: 7 cols): Service Type, Calendar & Time Slots */}
+        <div className="md:col-span-7 flex flex-col gap-4">
+          
+          {/* Pickup method */}
+          <div className="bg-surf rounded-3xl p-4 border border-token shadow-xs">
+            <p className="field-label pb-2 font-bold text-t2">รูปแบบการนำรถเข้ารับบริการ <span className="required-mark">*</span></p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { key: 'self',   icon: 'garage', title: 'นำรถมาเอง',   sub: 'นำเข้าอู่ 179 Auto Doi Saket' },
+                { key: 'pickup', icon: 'home',   title: 'รับรถถึงบ้าน', sub: 'ช่างบริการรับ-ส่งถึงที่' },
+              ].map((p) => {
+                const isSelected = pickupType === p.key
                 return (
-                  <button key={t} disabled={isFull}
-                    onClick={() => setSelectedTime(t)}
-                    className="py-2 rounded-xl text-center transition-all cursor-pointer border"
-                    style={{
-                      background: isSel ? 'var(--acc)' : 'var(--surf)',
-                      borderColor: isSel ? 'var(--acc)' : 'var(--brd2)',
-                      opacity: isFull ? 0.4 : 1,
-                      borderWidth: 0.5,
-                    }}>
-                    <p className="text-xs font-semibold"
-                      style={{ color: isSel ? '#fff' : isFull ? 'var(--t3)' : 'var(--t1)' }}>
-                      {t}
-                    </p>
-                    <p className="mt-0.5" style={{ fontSize: 9, color: isSel ? 'rgba(255,255,255,.7)' : isFull ? 'var(--err)' : 'var(--t3)' }}>
-                      {isFull ? 'เต็ม' : isSel ? 'เลือก ✓' : `ว่าง`}
-                    </p>
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setPickupType(p.key)}
+                    className={`rounded-2xl p-3.5 text-left border transition-all cursor-pointer flex items-center gap-3 ${
+                      isSelected
+                        ? 'border-acc bg-adim shadow-sm'
+                        : 'border-token bg-s2/60 hover:bg-s2'
+                    }`}
+                  >
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isSelected ? 'bg-surf shadow-xs' : 'bg-surf/80'
+                    }`}>
+                      <AppIcon name={p.icon} size={24} />
+                    </div>
+                    <div>
+                      <p className={`text-xs font-bold ${isSelected ? 'text-acc' : 'text-t1'}`}>{p.title}</p>
+                      <p className="text-[11px] text-t3 mt-0.5">{p.sub}</p>
+                    </div>
                   </button>
                 )
               })}
             </div>
-          )}
-        </>
-      )}
-
-      {/* Car selector */}
-      {cars.length === 0 ? (
-        <div className="mx-4 mb-4 p-4 rounded-2xl flex gap-3 items-center cursor-pointer"
-          style={{ background:'var(--adim)', border:'1px dashed var(--abrd)' }}
-          onClick={() => router.push('/profile/add-car')}>
-          <span className="text-2xl">🚗</span>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-t1">ยังไม่มีรถในบัญชี</p>
-            <p className="text-xs text-acc mt-0.5">กดที่นี่เพื่อเพิ่มรถก่อนจอง →</p>
           </div>
-        </div>
-      ) : (
-        <>
-          <p className="field-label px-4 pb-1">รถของคุณ <span className="required-mark">*</span></p>
-          <div className="px-4 mb-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {cars.map((car) => (
-              <button key={car.id} onClick={() => setSelectedCar(car)}
-                className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all"
-                style={{
-                  background: selectedCar?.id === car.id ? 'var(--adim)' : 'var(--surf)',
-                  borderColor: selectedCar?.id === car.id ? 'var(--abrd)' : 'var(--brd2)',
-                  borderWidth: 0.5,
-                }}>
-                <span className="text-base">🚗</span>
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-t1">{car.brand} {car.model}</p>
-                  <p className="text-xs text-t2">{car.plate}</p>
+
+          {/* Calendar picker */}
+          <div className="bg-surf rounded-3xl p-4 md:p-5 border border-token shadow-xs">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <p className="field-label pb-0.5 font-bold text-t2">เลือกวันที่ต้องการจอง <span className="required-mark">*</span></p>
+                <p className="text-xs text-t3">เปิดให้บริการวันจันทร์ - เสาร์ (หยุดวันอาทิตย์)</p>
+              </div>
+              <div className="flex items-center gap-1.5 bg-s2 p-1 rounded-xl border border-token">
+                <button
+                  type="button"
+                  onClick={prevMonth}
+                  className="w-7 h-7 bg-surf hover:bg-s3 rounded-lg flex items-center justify-center text-t1 text-sm cursor-pointer border-none shadow-xs"
+                >
+                  ‹
+                </button>
+                <span className="font-syne text-xs font-bold text-t1 px-2">
+                  {MONTHS_TH_FULL[viewMonth]} {viewYear + 543}
+                </span>
+                <button
+                  type="button"
+                  onClick={nextMonth}
+                  className="w-7 h-7 bg-surf hover:bg-s3 rounded-lg flex items-center justify-center text-t1 text-sm cursor-pointer border-none shadow-xs"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+
+            {/* Days grid */}
+            <div className="grid grid-cols-7 gap-1 text-center mb-1">
+              {DAYS_TH.map((d, idx) => (
+                <div key={d} className={`py-1 text-xs font-bold ${idx === 0 ? 'text-err' : 'text-t3'}`}>
+                  {d}
                 </div>
-              </button>
-            ))}
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                <div key={`empty-${i}`} className="h-9" />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1
+                const disabled = isDayDisabled(day)
+                const dateStr = toDateStr(viewYear, viewMonth, day)
+                const isSelected = selectedDate === dateStr
+                const isToday = dateStr === toDateStr(today.getFullYear(), today.getMonth(), today.getDate())
+
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={`h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer flex flex-col items-center justify-center relative ${
+                      isSelected
+                        ? 'bg-acc text-white shadow-md font-bold'
+                        : isToday
+                        ? 'bg-adim text-acc border border-acc'
+                        : disabled
+                        ? 'text-t3 opacity-30 cursor-not-allowed'
+                        : 'bg-s2 hover:bg-s3 text-t1'
+                    }`}
+                  >
+                    <span>{day}</span>
+                    {isToday && !isSelected && (
+                      <span className="w-1 h-1 rounded-full bg-acc absolute bottom-1" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </>
-      )}
 
-      {/* Service type */}
-      <p className="field-label px-4 pb-1">ประเภทงาน <span className="required-mark">*</span></p>
-      <div className="flex flex-wrap gap-2 px-4 mb-3">
-        {SERVICE_TYPES.map((s) => (
-          <button key={s} onClick={() => toggleService(s)}
-            className="px-3 py-1.5 rounded-full text-xs border transition-all cursor-pointer"
-            style={{
-              background: services.includes(s) ? 'var(--adim)' : 'var(--surf)',
-              color: services.includes(s) ? 'var(--acc)' : 'var(--t2)',
-              borderColor: services.includes(s) ? 'var(--abrd)' : 'var(--brd2)',
-              borderWidth: 0.5,
-            }}>
-            {s}
-          </button>
-        ))}
-      </div>
+          {/* Time Slots */}
+          {selectedDate && (
+            <div className="bg-surf rounded-3xl p-4 md:p-5 border border-token shadow-xs">
+              <div className="flex justify-between items-center mb-3">
+                <p className="field-label pb-0 font-bold text-t2">ช่วงเวลานัดหมาย <span className="required-mark">*</span></p>
+                <span className="text-xs text-acc font-semibold">วันที่ {selectedDate}</span>
+              </div>
 
-      {/* Note */}
-      <p className="field-label px-4 pb-1">หมายเหตุ</p>
-      <div className="px-4 mb-4">
-        <textarea className="input-field resize-none" style={{ height: 60, fontSize: 12 }}
-          placeholder="รายละเอียดเพิ่มเติม อาการเสีย หรือข้อมูลอื่นๆ..."
-          value={note} onChange={(e) => setNote(e.target.value)} />
-      </div>
+              {slotsLoading ? (
+                <div className="flex items-center justify-center py-6 gap-2 text-xs text-t2">
+                  <span
+                    className="inline-block w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
+                    style={{ borderColor: 'var(--acc)', borderTopColor: 'transparent' }}
+                  />
+                  <span>กำลังตรวจสอบคิวว่าง...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
+                  {TIME_SLOTS.map((t) => {
+                    const s = slotData[t]
+                    const isFull = s ? (s.isFull ?? (s.max != null && s.booked != null ? s.booked >= s.max : false)) : false
+                    const isSel = selectedTime === t
 
-      {error && (
-        <div className="mx-4 mb-3 p-3 rounded-xl text-xs text-err flex gap-2"
-          style={{ background: 'var(--errdim)', border: '0.5px solid rgba(232,92,58,.25)' }}>
-          ⚠️ {error}
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        disabled={isFull}
+                        onClick={() => setSelectedTime(t)}
+                        className={`py-2.5 px-2 rounded-2xl text-center transition-all cursor-pointer border flex flex-col items-center justify-center ${
+                          isSel
+                            ? 'bg-acc text-white border-acc shadow-sm'
+                            : isFull
+                            ? 'bg-s2 border-token opacity-40 cursor-not-allowed'
+                            : 'bg-s2 hover:bg-s3 border-token text-t1'
+                        }`}
+                      >
+                        <span className={`text-xs font-bold ${isSel ? 'text-white' : 'text-t1'}`}>{t} น.</span>
+                        <span
+                          className={`text-[9px] mt-0.5 ${
+                            isSel ? 'text-white/90' : isFull ? 'text-err font-medium' : 'text-grn font-semibold'
+                          }`}
+                        >
+                          {isFull ? 'เต็ม' : isSel ? 'เลือกแล้ว' : 'ว่าง'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
-      )}
 
-      {/* Confirm button */}
-      <div className="px-4 mb-6">
-        <button
-          className="btn-primary flex items-center justify-center gap-2"
-          style={(!selectedTime || submitting) ? { background: 'var(--s3)', color: 'var(--t3)' } : {}}
-          onClick={handleConfirm}
-          disabled={!selectedTime || submitting || cars.length === 0}>
-          {submitting ? (
-            <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />กำลังจอง...</>
-          ) : selectedTime ? `ยืนยันการจอง — ${selectedDate} · ${selectedTime} น.` : 'กรุณาเลือกวันและเวลา'}
-        </button>
+        {/* Right Column (Desktop: 5 cols): Car Selection, Services, Notes & Confirmation */}
+        <div className="md:col-span-5 flex flex-col gap-4">
+          
+          {/* Car selector */}
+          <div className="bg-surf rounded-3xl p-4 md:p-5 border border-token shadow-xs">
+            <div className="flex justify-between items-center mb-2">
+              <p className="field-label pb-0 font-bold text-t2">รถของคุณ <span className="required-mark">*</span></p>
+              <Link href="/profile/add-car" className="text-xs text-acc font-semibold hover:underline">
+                + เพิ่มรถใหม่
+              </Link>
+            </div>
+
+            {cars.length === 0 ? (
+              <div
+                className="p-4 rounded-2xl flex gap-3 items-center cursor-pointer bg-adim border border-dashed border-acc"
+                onClick={() => router.push('/profile/add-car')}
+              >
+                <div className="w-10 h-10 rounded-xl bg-surf flex items-center justify-center shadow-xs">
+                  <AppIcon name="car" size={24} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-t1">ยังไม่มีรถในบัญชี</p>
+                  <p className="text-[11px] text-acc mt-0.5">กดที่นี่เพื่อเพิ่มข้อมูลรถก่อนจอง →</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {cars.map((car) => {
+                  const isChosen = selectedCar?.id === car.id
+                  return (
+                    <button
+                      key={car.id}
+                      type="button"
+                      onClick={() => setSelectedCar(car)}
+                      className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all text-left cursor-pointer ${
+                        isChosen
+                          ? 'border-acc bg-adim shadow-sm'
+                          : 'border-token bg-s2/60 hover:bg-s2'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-surf border border-token flex items-center justify-center flex-shrink-0">
+                        <AppIcon name="car" size={24} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-t1 truncate">
+                          {car.brand} {car.model} {car.year}
+                        </p>
+                        <p className="text-[11px] text-t2 font-medium">{car.plate}</p>
+                      </div>
+                      {isChosen && (
+                        <span className="w-5 h-5 rounded-full bg-acc text-white flex items-center justify-center text-[10px] font-bold">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Service options grid */}
+          <div className="bg-surf rounded-3xl p-4 md:p-5 border border-token shadow-xs">
+            <p className="field-label pb-2 font-bold text-t2">ประเภทงานที่ต้องการซ่อม/บริการ <span className="required-mark">*</span></p>
+            <div className="grid grid-cols-2 gap-2">
+              {SERVICE_OPTIONS.map((s) => {
+                const isChecked = services.includes(s.id)
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => toggleService(s.id)}
+                    className={`p-2.5 rounded-2xl border transition-all text-left flex items-center gap-2.5 cursor-pointer ${
+                      isChecked
+                        ? 'border-acc bg-adim shadow-xs'
+                        : 'border-token bg-s2/60 hover:bg-s2'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isChecked ? 'bg-surf shadow-xs' : 'bg-surf/70'
+                    }`}>
+                      <AppIcon name={s.icon} size={20} />
+                    </div>
+                    <span className={`text-xs font-medium leading-tight ${
+                      isChecked ? 'text-acc font-bold' : 'text-t1'
+                    }`}>
+                      {s.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="bg-surf rounded-3xl p-4 border border-token shadow-xs">
+            <p className="field-label pb-1.5 font-bold text-t2">หมายเหตุหรืออาการเพิ่มเติม</p>
+            <textarea
+              className="input-field resize-none rounded-2xl"
+              style={{ height: 68, fontSize: 13 }}
+              placeholder="แจ้งอาการผิดปกติ เสียงดัง หรือข้อกำหนดพิเศษ..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+
+          {/* Error notice */}
+          {error && (
+            <div
+              className="p-3.5 rounded-2xl text-xs text-err flex items-center gap-2 font-medium"
+              style={{ background: 'var(--errdim)', border: '0.5px solid rgba(232,92,58,.25)' }}
+            >
+              ⚠️ {error}
+            </div>
+          )}
+
+          {/* Booking Summary & Confirm Button */}
+          <div className="bg-surf rounded-3xl p-4 border border-token shadow-sm">
+            <div className="text-xs text-t2 space-y-1 mb-3 pb-3 border-b border-token">
+              <div className="flex justify-between">
+                <span>รถ:</span>
+                <span className="font-semibold text-t1">{selectedCar ? `${selectedCar.brand} ${selectedCar.plate}` : '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>วันเวลา:</span>
+                <span className="font-semibold text-t1">{selectedDate && selectedTime ? `${selectedDate} · ${selectedTime} น.` : 'ยังไม่ระบุ'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>งานซ่อม:</span>
+                <span className="font-semibold text-acc">{services.length > 0 ? services.join(', ') : 'ยังไม่เลือก'}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn-primary flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              style={(!selectedTime || submitting || !selectedDate) ? { background: 'var(--s3)', color: 'var(--t3)' } : {}}
+              onClick={handleConfirm}
+              disabled={!selectedDate || !selectedTime || submitting || cars.length === 0}
+            >
+              {submitting ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>กำลังบันทึกการจอง...</span>
+                </>
+              ) : selectedTime ? (
+                `ยืนยันการจองคิว (${selectedTime} น.)`
+              ) : (
+                'กรุณาเลือกวันและเวลา'
+              )}
+            </button>
+          </div>
+
+        </div>
+
       </div>
 
       <BottomNav />

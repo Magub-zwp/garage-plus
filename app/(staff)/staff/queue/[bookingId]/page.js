@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase/config'
 import { doc, getDoc, updateDoc, addDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore'
 import { ACTIVE_STATUSES } from '@/lib/repairStatus'
 import { pushNotification } from '@/lib/notify'
+import { ChevronLeft } from 'lucide-react'
 
 const STATUS_OPTS = [
   { value: 'pending',   label: 'รอยืนยัน',    color: 'var(--t2)'  },
@@ -107,7 +108,9 @@ export default function BookingDetailPage() {
   return (
     <DashboardShell requiredRole="admin">
       <div className="flex items-center gap-3 mb-5">
-        <Link href="/staff/queue" className="text-t2 text-sm">‹ กลับ</Link>
+        <Link href="/staff/queue" className="text-t2 hover:text-t1 text-sm flex items-center gap-1">
+          <ChevronLeft size={16} /> กลับ
+        </Link>
         <h1 className="font-syne text-xl font-bold text-t1">รายละเอียดการจอง</h1>
       </div>
 

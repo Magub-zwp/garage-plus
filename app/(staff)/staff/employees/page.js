@@ -4,8 +4,12 @@ import DashboardShell from '@/components/staff/DashboardShell'
 import { db } from '@/lib/firebase/config'
 import { collection, getDocs } from 'firebase/firestore'
 import { authFetch } from '@/lib/api/authFetch'
+import { ShieldCheck, Wrench, Eye, EyeOff, UserCheck, Plus, Trash2 } from 'lucide-react'
 
-const ROLE_LABEL = { admin:'👑 แอดมิน', mechanic:'🔧 ช่างซ่อม' }
+const ROLE_CONFIG = {
+  admin: { label: 'แอดมิน', Icon: ShieldCheck, bdg: 'bdg-rep' },
+  mechanic: { label: 'ช่างซ่อม', Icon: Wrench, bdg: 'bdg-done' }
+}
 const EMPTY = { name:'', email:'', password:'', role:'mechanic' }
 
 export default function EmployeesPage() {
@@ -75,8 +79,11 @@ export default function EmployeesPage() {
           <p className="text-xs text-t2 mt-0.5">{staff.length} คนในระบบ</p>
         </div>
         <button onClick={() => { setShowForm(true); setForm(EMPTY); setMsg('') }}
-          className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer"
-          style={{ background:'var(--acc)' }}>+ เพิ่มพนักงาน</button>
+          className="px-4 py-2 rounded-full text-xs font-bold text-white border-none cursor-pointer flex items-center gap-1.5"
+          style={{ background:'var(--acc)' }}>
+          <Plus size={14} />
+          <span>เพิ่มพนักงาน</span>
+        </button>
       </div>
 
       {msg && !showForm && (
@@ -94,8 +101,10 @@ export default function EmployeesPage() {
       ) : (
         <div className="card overflow-hidden">
           {staff.length === 0 ? (
-            <div className="p-10 text-center">
-              <span className="text-4xl mb-3 block">🧑‍🔧</span>
+            <div className="p-10 text-center flex flex-col items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-s2 text-t3 flex items-center justify-center mb-3">
+                <UserCheck size={24} strokeWidth={1.75} />
+              </div>
               <p className="font-syne text-sm font-bold text-t1 mb-1">ยังไม่มีพนักงาน</p>
               <p className="text-xs text-t2">กด "+ เพิ่มพนักงาน" เพื่อสร้างบัญชีช่างหรือแอดมิน</p>
             </div>
@@ -104,22 +113,27 @@ export default function EmployeesPage() {
               <colgroup><col/><col style={{ width:120 }}/><col style={{ width:150 }}/><col style={{ width:56 }}/></colgroup>
               <thead><tr><th>ชื่อ</th><th>Role</th><th>Email</th><th></th></tr></thead>
               <tbody>
-                {staff.map(s => (
-                  <tr key={s.uid}>
-                    <td className="font-semibold text-sm text-t1">{s.name||'-'}</td>
-                    <td>
-                      <span className={`bdg ${s.role==='admin'?'bdg-rep':'bdg-done'}`} style={{ whiteSpace:'nowrap' }}>
-                        {ROLE_LABEL[s.role]||s.role}
-                      </span>
-                    </td>
-                    <td className="text-xs text-t2 truncate">{s.email||'-'}</td>
-                    <td>
-                      <button onClick={() => handleDelete(s.uid, s.name)}
-                        className="text-xs font-bold px-2 py-1 rounded-full border-none cursor-pointer"
-                        style={{ background:'var(--errdim)', color:'var(--err)' }}>ลบ</button>
-                    </td>
-                  </tr>
-                ))}
+                {staff.map(s => {
+                  const cfg = ROLE_CONFIG[s.role] || { label: s.role, Icon: ShieldCheck, bdg: 'bdg-wait' }
+                  const RoleIcon = cfg.Icon
+                  return (
+                    <tr key={s.uid}>
+                      <td className="font-semibold text-sm text-t1">{s.name||'-'}</td>
+                      <td>
+                        <span className={`bdg ${cfg.bdg} inline-flex items-center gap-1.5`} style={{ whiteSpace:'nowrap' }}>
+                          <RoleIcon size={12} strokeWidth={2} />
+                          <span>{cfg.label}</span>
+                        </span>
+                      </td>
+                      <td className="text-xs text-t2 truncate">{s.email||'-'}</td>
+                      <td>
+                        <button onClick={() => handleDelete(s.uid, s.name)}
+                          className="text-xs font-bold px-2 py-1 rounded-full border-none cursor-pointer"
+                          style={{ background:'var(--errdim)', color:'var(--err)' }}>ลบ</button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}
@@ -128,7 +142,7 @@ export default function EmployeesPage() {
       {/* Modal form for adding a new staff member */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surf rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-surf rounded-2xl p-6 w-full max-w-md shadow-xl border border-token">
             <h3 className="font-syne text-base font-bold text-t1 mb-4">เพิ่มพนักงานใหม่</h3>
 
             {msg && <div className="mb-3 p-2.5 rounded-xl text-xs"
@@ -152,8 +166,8 @@ export default function EmployeesPage() {
                   placeholder="ตั้งรหัสผ่านเริ่มต้น" value={form.password||''}
                   onChange={e => setForm({...form,password:e.target.value})} />
                 <button type="button" onClick={() => setShowPw(p=>!p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-t3 border-none bg-transparent cursor-pointer text-sm">
-                  {showPw?'🙈':'👁'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-t3 hover:text-t1 border-none bg-transparent cursor-pointer p-1 flex items-center justify-center">
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
@@ -161,13 +175,24 @@ export default function EmployeesPage() {
             <div className="mb-4">
               <label className="field-label">Role</label>
               <div className="grid grid-cols-2 gap-2">
-                {[{k:'mechanic',l:'🔧 ช่างซ่อม'},{k:'admin',l:'👑 แอดมิน'}].map(r => (
-                  <button key={r.k} onClick={() => setForm({...form,role:r.k})}
-                    className="py-2.5 rounded-xl text-xs font-bold cursor-pointer border-none"
-                    style={{ background:form.role===r.k?'var(--adim)':'var(--s2)', color:form.role===r.k?'var(--acc)':'var(--t2)', border:`0.5px solid ${form.role===r.k?'var(--abrd)':'var(--brd)'}` }}>
-                    {r.l}
-                  </button>
-                ))}
+                {[
+                  { k:'mechanic', label:'ช่างซ่อม', Icon: Wrench },
+                  { k:'admin',    label:'แอดมิน',  Icon: ShieldCheck }
+                ].map(r => {
+                  const isSel = form.role === r.k
+                  return (
+                    <button key={r.k} type="button" onClick={() => setForm({...form,role:r.k})}
+                      className="py-2.5 px-3 rounded-xl text-xs font-bold cursor-pointer border-none flex items-center justify-center gap-1.5 transition-colors"
+                      style={{
+                        background: isSel ? 'var(--adim)' : 'var(--s2)',
+                        color:      isSel ? 'var(--acc)'  : 'var(--t2)',
+                        border:     `0.5px solid ${isSel ? 'var(--abrd)' : 'var(--brd)'}`
+                      }}>
+                      <r.Icon size={14} />
+                      <span>{r.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
             {/* Action buttons for canceling or creating the staff member */}
