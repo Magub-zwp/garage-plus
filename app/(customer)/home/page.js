@@ -37,8 +37,22 @@ export default function HomePage() {
   const [slideIdx,  setSlideIdx]= useState(0)
   const { articles }            = useArticles('all', 8)
   const [unread, setUnread]     = useState(0)
+  const [isDark, setIsDark]     = useState(true)
+  const [mounted, setMounted]   = useState(false)
   const trackRef                = useRef(null)
   const timerRef                = useRef(null)
+
+  useEffect(() => {
+    setMounted(true)
+    setIsDark(localStorage.getItem('gp_dark') !== '0')
+  }, [])
+
+  const toggleDarkMode = () => {
+    const next = !isDark
+    setIsDark(next)
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem('gp_dark', next ? '1' : '0')
+  }
 
   // Real-time unread notifications count
   useEffect(() => {
@@ -87,20 +101,32 @@ export default function HomePage() {
             <p className="text-t3 text-[10px] uppercase tracking-widest mt-0.5">179 Auto · Doi Saket</p>
           </div>
         </div>
-        <Link
-          href="/notifications"
-          className="relative w-9 h-9 bg-surf rounded-xl flex items-center justify-center border border-token shadow-sm active:scale-95 transition-transform"
-        >
-          <AppIcon name="bell" size={18} />
-          {unread > 0 && (
-            <span
-              className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-bold text-white shadow-sm"
-              style={{ background: 'var(--acc)', fontSize: 9, border: '1.5px solid var(--surf)' }}
+        <div className="flex items-center gap-2">
+          {mounted && (
+            <button
+              onClick={toggleDarkMode}
+              className="w-9 h-9 bg-surf rounded-xl flex items-center justify-center border border-token shadow-sm active:scale-95 transition-transform text-xs cursor-pointer text-t2"
+              title={isDark ? 'เปลี่ยนเป็นโหมดสว่าง' : 'เปลี่ยนเป็นโหมดมืด'}
             >
-              {unread > 9 ? '9+' : unread}
-            </span>
+              {isDark ? '☀️' : '🌙'}
+            </button>
           )}
-        </Link>
+          <Link
+            href="/notifications"
+            className="relative w-9 h-9 bg-surf rounded-xl flex items-center justify-center border border-token shadow-sm active:scale-95 transition-transform"
+            title="การแจ้งเตือน"
+          >
+            <AppIcon name="bell" size={18} />
+            {unread > 0 && (
+              <span
+                className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-bold text-white shadow-sm"
+                style={{ background: 'var(--acc)', fontSize: 9, border: '1.5px solid var(--surf)' }}
+              >
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </Link>
+        </div>
       </header>
 
       {/* Greeting Banner */}
