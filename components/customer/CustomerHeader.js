@@ -62,7 +62,7 @@ export default function CustomerHeader() {
   if (isAuthPage) return null
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-surf/90 backdrop-blur-md border-b border-token transition-colors">
+    <header className="hidden md:block sticky top-0 z-40 w-full bg-surf/90 backdrop-blur-md border-b border-token transition-colors">
       <div className="max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         
         {/* Left: Brand Identity */}
