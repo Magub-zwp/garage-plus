@@ -62,6 +62,9 @@ body {
   .bg-adim        { background-color: var(--adim); }
   .bg-gdim        { background-color: var(--gdim); }
   .bg-errdim      { background-color: var(--errdim); }
+  .bg-acc         { background-color: var(--acc) !important; }
+  .bg-grn         { background-color: var(--grn) !important; }
+  .bg-err         { background-color: var(--err) !important; }
 
   .text-t1        { color: var(--t1); }
   .text-t2        { color: var(--t2); }
@@ -74,6 +77,7 @@ body {
   .border-token2  { border: 0.5px solid var(--brd2); }
   .border-acc     { border: 0.5px solid var(--abrd); }
   .border-grn     { border: 0.5px solid var(--gbrd); }
+  .border-err     { border: 0.5px solid var(--err); }
   .border-dashed-acc { border: 0.5px dashed var(--abrd); }
 
   .font-syne      { font-family: var(--font-syne), 'Syne', sans-serif; }
