@@ -10,7 +10,7 @@ import Sidebar from '@/components/staff/Sidebar'
 export default function DashboardShell({ children, requiredRole }) {
   const router = useRouter()
   const [user,        setUser]        = useState(null)
-  const [isDark,      setIsDark]      = useState(true)
+  const [isDark,      setIsDark]      = useState(false)
   const [ready,       setReady]       = useState(false)
   const [collapsed,   setCollapsed]   = useState(false)   // desktop: sidebar พับ
   const [mobileOpen,  setMobileOpen]  = useState(false)   // mobile: drawer เปิด
@@ -23,7 +23,7 @@ export default function DashboardShell({ children, requiredRole }) {
       return
     }
     setUser(session)
-    const dark = localStorage.getItem('gp_staff_dark') !== '0'
+    const dark = localStorage.getItem('gp_staff_dark') === '1'
     setIsDark(dark)
     document.documentElement.classList.toggle('dark', dark)
     // โหลด collapsed preference จาก localStorage

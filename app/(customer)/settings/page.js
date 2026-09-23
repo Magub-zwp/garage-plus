@@ -23,7 +23,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { uid } = useAuth()
   const { user } = useUser()
-  const [isDark,  setIsDark]  = useState(true)
+  const [isDark,  setIsDark]  = useState(false)
   const [notifs,  setNotifs]  = useState({ status:true, promo:true, maintenance:true, line:false })
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)

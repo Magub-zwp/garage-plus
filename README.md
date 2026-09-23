@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🚗 GaragePlus (ระบบบริหารจัดการอู่ซ่อมรถยนต์อัจฉริยะ)
 
-## Getting Started
+> **เว็บแอปพลิเคชันสำหรับบริหารจัดการงานบริการ จองคิวซ่อมรถยนต์ และติดตามสถานะงานซ่อมแบบเรียลไทม์**  
+> ศูนย์บริการ: **179 Auto Doi Saket**  
+> เว็บไซต์ทดสอบจริง: [https://garageplus.shop/](https://garageplus.shop/)
 
-First, run the development server:
+---
 
+## 📌 บทนำและวัตถุประสงค์ (Overview & Objectives)
+
+**GaragePlus** ถูกพัฒนาขึ้นเพื่อยกระดับการให้บริการของศูนย์ซ่อมบำรุงรถยนต์ โดยเชื่อมโยงระหว่าง **ลูกค้า (Customer)**, **ผู้ดูแลระบบ (Admin/Staff)** และ **ช่างซ่อมบำรุง (Mechanic)** เข้าด้วยกันในแพลตฟอร์มเดียว เพื่อแก้ปัญหาความไม่โปร่งใสในขั้นตอนการซ่อม การประเมินราคาที่ล่าช้า และการขาดระบบติดตามรอบการบำรุงรักษาเชิงป้องกัน (Preventive Maintenance)
+
+### ✨ จุดเด่นสำคัญ (Key Highlights):
+1. **Responsive & Mobile-First PWA UX**: ใช้งานสะดวกทั้งบนสมาร์ตโฟน แท็บเล็ต และคอมพิวเตอร์เดสก์ท็อป พร้อมธีมเริ่มต้น **Light Mode** ที่สะอาดตาและสามารถสลับเป็น Dark Mode ได้
+2. **Live Repair Tracking & Consent Gate**: ติดตามขั้นตอนงานซ่อมแบบเรียลไทม์ พร้อมระบบ **"กดยืนยันอนุมัติซ่อมจากลูกค้า"** ก่อนที่ช่างจะเริ่มงาน ป้องกันข้อพิพาทเรื่องค่าใช้จ่าย
+3. **Automotive Maintenance Tracker**: ติดตามรอบการบำรุงรักษาถัดไปตามเกณฑ์มาตรฐานสากล **"ระยะทาง (เลขไมล์) หรือ ระยะเวลา (วัน/เดือน) อันไหนมาถึงก่อน"** (*Whichever comes first*)
+4. **Real-time Notifications**: แจ้งเตือนเมื่อสถานะเปลี่ยนผ่าน In-App Notification ทันที
+5. **Staff & Mechanic Management**: ระบบคิวงานซ่อม, ตารางนัดหมาย, สถิติรายได้, รายงานการเงิน และประวัติการทำงานของช่างแต่ละคน
+
+---
+
+## 🔑 ข้อมูลบัญชีสำหรับทดสอบระบบ (Test Accounts & Access)
+
+| บทบาท (Role) | URL สำหรับเข้าสู่ระบบ | อีเมล (Username / Email) | รหัสผ่าน (Password) | คำอธิบายสิทธิ์การใช้งาน |
+| :--- | :--- | :--- | :--- | :--- |
+| **ลูกค้า (Customer)** | [https://garageplus.shop/](https://garageplus.shop/) | `guest@test.com` | `test1234` | จองคิว, ดูสถานะซ่อมสด, อนุมัติงานซ่อม, ดูประวัติและรายการอะไหล่, อัปเดตเลขไมล์ |
+| **ผู้ดูแลระบบ (Admin)** | [https://garageplus.shop/staff/login](https://garageplus.shop/staff/login) | `admin@test.com` | `admin123` | จัดการคิวงาน, มอบหมายช่าง, จัดการสิทธิ์พนักงาน, ดูรายงานสถิติและรายได้, ตั้งค่าร้าน |
+| **ช่างซ่อมบำรุง (Mechanic)** | [https://garageplus.shop/staff/login](https://garageplus.shop/staff/login) | `dang@hotmail.com` | `dang123456` | รับงานซ่อมจากคิว, บันทึกรายการอะไหล่, ส่งขออนุมัติลูกค้า, บันทึกเลขไมล์และระยะบำรุงรักษา |
+
+---
+
+## 🛠️ เทคโนโลยีที่ใช้พัฒนา (Tech Stack)
+
+- **Frontend Framework**: [Next.js](https://nextjs.org/) 16 (App Router, Turbopack, React 19)
+- **Styling & UI**: [Tailwind CSS](https://tailwindcss.com/), Lucide React Icons
+- **Database & Authentication**: [Firebase](https://firebase.google.com/) (Firestore Real-time Database, Firebase Authentication)
+- **Deployment**: Production Cloud Server พร้อม SSL/TLS (`https://garageplus.shop`)
+
+---
+
+## 📱 ฟังก์ชันการทำงานหลัก (Core Features)
+
+### 1. ระบบสำหรับลูกค้า (Customer Module)
+- **หน้าหลัก (Home)**: แสดงข้อมูลรถยนต์คันปัจจุบัน, สถานะงานซ่อมปัจจุบัน, เมนูลัดบริการด่วน, และบทความยานยนต์
+- **วิดเจ็ตติดตามรอบบำรุงรักษา (Maintenance Tracker)**:
+  - แสดงการเปรียบเทียบคู่ขนานระหว่าง **"ระยะทางคงเหลือ (กม.)"** และ **"ระยะเวลาคงเหลือ (วัน)"**
+  - แสดงป้ายเตือน: `🟢 ปกติ`, `⚠️ ใกล้ถึงกำหนด`, `🔴 เกินกำหนดแล้ว`
+  - มีปุ่มให้ลูกค้ากด **"อัปเดตเลขไมล์"** จากหน้าปัดรถยนต์ได้ด้วยตนเอง
+- **ติดตามงานซ่อมสด (Live Status)**:
+  - Timeline 6 ขั้นตอน: `รับรถ` ➔ `ตรวจเช็ค` ➔ `รออนุมัติ` ➔ `กำลังซ่อม` ➔ `ตรวจสอบ QC` ➔ `ส่งมอบ`
+  - **Approval Consent Gate**: หน้าต่างกดยืนยันการซ่อมสำหรับลูกค้า ช่างจะไม่สามารถเริ่มซ่อมได้จนกว่าลูกค้าจะกดอนุมัติ
+- **ประวัติการซ่อมและบริการ (Repair History)**:
+  - แจกแจงรายการอะไหล่และชิ้นงานที่ช่างเปลี่ยน พร้อมจำนวนและรายละเอียด
+  - แสดงเลขไมล์ตอนนำรถเข้าซ่อม และกำหนดรอบบริการถัดไป
+  - ตัวกรองประวัติการซ่อมแยกตามรายปี
+
+### 2. ระบบสำหรับช่างซ่อม (Mechanic Module)
+- **คิวงานซ่อมของช่าง (Mechanic Queue)**: แสดงรายการรถที่ได้รับมอบหมาย
+- **บันทึกงานซ่อม (Repair Execution)**:
+  - บันทึกรายการอะไหล่ที่ตรวจพบและจำนวน
+  - ส่งคำขออนุมัติราคา/งานซ่อมให้ลูกค้า
+  - บันทึกเลขไมล์ปัจจุบัน พร้อมปุ่มทางเลือกด่วน (Preset) ตามมาตรฐานน้ำมันเครื่อง:
+    - *สังเคราะห์แท้ (+10,000 กม. / 6 เดือน)*
+    - *กึ่งสังเคราะห์ (+5,000 กม. / 3 เดือน)*
+    - *เช็กระยะใหญ่ (+20,000 กม. / 1 ปี)*
+- **ประวัติงานซ่อมของช่าง**: บันทึกสถิติงานที่ทำสำเร็จและสรุปรายได้
+
+### 3. ระบบสำหรับผู้ดูแลระบบ (Admin Module)
+- **ภาพรวมและจัดการคิว (Dashboard & Queue)**: ควบคุมสถานะงานซ่อมของอู่ทั้งหมด
+- **มอบหมายงาน (Assign Mechanic)**: เลือกรถและส่งต่องานให้ช่างผู้รับผิดชอบ
+- **รายงานสถิติ (Reports & Analytics)**: ยอดรายได้รวม, ค่าเฉลี่ยต่อออเดอร์, และผลงานแยกตามรายช่าง
+- **จัดการข้อมูลศูนย์ (Shop Settings)**: เวลาทำการ, จำนวนช่องซ่อมต่อชั่วโมง, วันหยุดประจำสัปดาห์
+
+---
+
+## 🚀 คำแนะนำสำหรับการรันระบบบนเครื่อง Local (Local Development)
+
+### ความต้องการของระบบ (Prerequisites)
+- [Node.js](https://nodejs.org/) เวอร์ชัน 18.18.0 ขึ้นไป
+- [npm](https://www.npmjs.com/) หรือ yarn / pnpm
+
+### ขั้นตอนการติดตั้งและรัน:
 ```bash
+# 1. ติดตั้ง Dependencies
+npm install
+
+# 2. ตั้งค่าตัวแปรสภาพแวดล้อม (.env.local) สำหรับเชื่อมต่อ Firebase
+# (ตรวจสอบให้แน่ใจว่ามีค่า FIREBASE_CONFIG ถูกต้อง)
+
+# 3. รัน Development Server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# 4. ทดสอบเปิดใช้งานผ่านเบราว์เซอร์
+# เข้าสู่ระบบที่ http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### การตรวจสอบความถูกต้องก่อน Deploy (Production Build):
+```bash
+npm run build
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 👥 ผู้พัฒนา (Developers)
+- **โครงงานเทคโนโลยีสารสนเทศ (Senior Project / Thesis Project)**
+- มหาวิทยาลัย / สถาบันการศึกษา
+- ระบบต้นแบบสำหรับ: **ศูนย์บริการ 179 Auto Doi Saket**
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
