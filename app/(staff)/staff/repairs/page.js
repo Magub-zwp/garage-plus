@@ -7,8 +7,7 @@ import { doc, getDoc, updateDoc, addDoc, getDocs, collection, query, where, orde
 import Link from 'next/link'
 import { STEPS, STATUS_MAP, ACTIVE_STATUSES, statusIndex, canTransition, REPAIRING_IDX } from '@/lib/repairStatus'
 import { notifyRepairStatus, syncBookingStatus } from '@/lib/notify'
-import { syncCarMaintenance } from '@/lib/firebase/firestore'
-import { Plus, Trash2, AlertCircle, Gauge, Calendar, Check } from 'lucide-react'
+import { Plus, Trash2, AlertCircle } from 'lucide-react'
 
 export default function RepairsPage() {
   return (
@@ -36,41 +35,6 @@ function RepairsPageContent() {
   const [newRepair,  setNewRepair]  = useState({ bookingId:'', plate:'', carName:'', mechanicName:'', jobDetail:'' })
   const [creating,   setCreating]   = useState(false)
   const [createMsg,  setCreateMsg]  = useState('')
-
-  // State สำหรับบันทึกเลขไมล์และรอบบำรุงรักษาถัดไป
-  const [mileage,          setMileage]          = useState('')
-  const [intervalKm,       setIntervalKm]       = useState(10000)
-  const [intervalMonths,   setIntervalMonths]   = useState(6)
-  const [targetMileage,    setTargetMileage]    = useState('')
-  const [targetDate,       setTargetDate]       = useState('')
-  const [serviceType,      setServiceType]      = useState('ถ่ายน้ำมันเครื่อง (สังเคราะห์แท้)')
-  const [maintenanceSaved, setMaintenanceSaved] = useState(false)
-
-  const updateMaintenanceTargets = (currentKm, kmSpan, monthSpan) => {
-    const kmNum = parseInt(currentKm) || 0
-    if (kmNum > 0) {
-      setTargetMileage(String(kmNum + (parseInt(kmSpan) || 0)))
-    } else {
-      setTargetMileage('')
-    }
-    if (monthSpan) {
-      const d = new Date()
-      d.setMonth(d.getMonth() + parseInt(monthSpan))
-      setTargetDate(d.toISOString().split('T')[0])
-    }
-  }
-
-  const handleMileageChange = (val) => {
-    setMileage(val)
-    updateMaintenanceTargets(val, intervalKm, intervalMonths)
-  }
-
-  const handlePresetSelect = (km, months, type) => {
-    setIntervalKm(km)
-    setIntervalMonths(months)
-    if (type) setServiceType(type)
-    updateMaintenanceTargets(mileage, km, months)
-  }
 
   const fetchRepairs = useCallback(async () => {
     setErr('')
@@ -116,27 +80,6 @@ function RepairsPageContent() {
     for (let i = 0; i <= stepIdx && stepIdx >= 0; i++) doneSet.add(i)
     setDone(doneSet)
     setItemName(''); setQty(''); setNote(''); setMsg('')
-    setMaintenanceSaved(false)
-
-    if (r.mileage) {
-      setMileage(String(r.mileage))
-      if (r.nextMaintenance) {
-        setIntervalKm(r.nextMaintenance.intervalKm || 10000)
-        setIntervalMonths(r.nextMaintenance.intervalMonths || 6)
-        setTargetMileage(String(r.nextMaintenance.targetMileage || ''))
-        setTargetDate(r.nextMaintenance.targetDate || '')
-        setServiceType(r.nextMaintenance.serviceType || 'ถ่ายน้ำมันเครื่อง (สังเคราะห์แท้)')
-        setMaintenanceSaved(true)
-      } else {
-        updateMaintenanceTargets(r.mileage, 10000, 6)
-      }
-    } else {
-      setMileage('')
-      setTargetMileage('')
-      const d = new Date()
-      d.setMonth(d.getMonth() + 6)
-      setTargetDate(d.toISOString().split('T')[0])
-    }
   }
 
   // สลับสถานะของขั้นตอนซ่อม: กดได้แค่ "ขั้นถัดไป" ทีละขั้น ห้ามย้อนขั้นที่ผ่านไปแล้ว และห้ามข้ามขั้น
@@ -158,55 +101,6 @@ function RepairsPageContent() {
   const approval     = repair?.approval
   const needApproval = statusIndex(newStatus) >= REPAIRING_IDX && approval?.state !== 'approved'
 
-  // บันทึกเฉพาะข้อมูลระยะบำรุงรักษาอย่างเดียว
-  const handleSaveMaintenanceOnly = async () => {
-    if (!repair) return
-    setSaving(true); setMsg('')
-    try {
-      const curKm = parseInt(mileage) || 0
-      const tgtKm = parseInt(targetMileage) || (curKm > 0 ? curKm + intervalKm : 0)
-      const maintenanceData = {
-        serviceType,
-        intervalKm: Number(intervalKm),
-        intervalMonths: Number(intervalMonths),
-        targetMileage: tgtKm,
-        targetDate: targetDate || '',
-      }
-
-      await updateDoc(doc(db, 'repairs', repair.id), {
-        mileage: curKm,
-        nextMaintenance: maintenanceData,
-        updatedAt: serverTimestamp(),
-      })
-
-      await syncCarMaintenance({
-        carId: repair.carId,
-        plate: repair.plate || repair.carPlate,
-        userId: repair.userId,
-        currentMileage: curKm,
-        nextServiceMileage: tgtKm,
-        nextServiceDate: targetDate,
-        serviceType,
-      })
-
-      if (repair.userId) {
-        await pushNotification({
-          userId: repair.userId,
-          title: 'บันทึกระยะบำรุงรักษาเรียบร้อย 🚗',
-          body: `รอบถัดไป: ${tgtKm ? `${tgtKm.toLocaleString()} กม.` : ''} หรือวันที่ ${targetDate || '-'} (อันใดอันหนึ่งถึงก่อน)`,
-          type: 'maintenance',
-          link: '/history',
-        })
-      }
-
-      setMaintenanceSaved(true)
-      setRepair(prev => ({ ...prev, mileage: curKm, nextMaintenance: maintenanceData }))
-      setMsg('✅ บันทึกเลขไมล์และรอบบำรุงรักษาเรียบร้อย')
-    } catch(e) {
-      setMsg(`❌ ${e.code === 'permission-denied' ? 'ไม่มีสิทธิ์บันทึก' : e.message}`)
-    } finally { setSaving(false) }
-  }
-
   const handleSave = async () => {
     if (!repair) return
     const check = canTransition(repair.status, newStatus, approval)
@@ -222,43 +116,12 @@ function RepairsPageContent() {
       }
       if (itemName) updates.proposedJobs = arrayUnion({ name: itemName, qty: parseInt(qty) || 1 }) // ไม่มีราคา (ตัดออกตามขอบเขต)
       if (note) updates.lastNote = note
-      if (newStatus === 'awaiting_approval') {
-        updates.approval = { state: 'pending', approvedBy: null, approvedAt: null, note: '' }
-      }
-
-      if (mileage) {
-        const curKm = parseInt(mileage) || 0
-        const tgtKm = parseInt(targetMileage) || (curKm > 0 ? curKm + intervalKm : 0)
-        updates.mileage = curKm
-        updates.nextMaintenance = {
-          serviceType,
-          intervalKm: Number(intervalKm),
-          intervalMonths: Number(intervalMonths),
-          targetMileage: tgtKm,
-          targetDate: targetDate || '',
-        }
-
-        await syncCarMaintenance({
-          carId: repair.carId,
-          plate: repair.plate || repair.carPlate,
-          userId: repair.userId,
-          currentMileage: curKm,
-          nextServiceMileage: tgtKm,
-          nextServiceDate: targetDate,
-          serviceType,
-        })
-      }
 
       await updateDoc(doc(db, 'repairs', repair.id), updates)
       await notifyRepairStatus({ ...repair }, newStatus)   // แจ้งเตือนลูกค้าจริง (เขียน notification doc)
       await syncBookingStatus(repair.bookingId, newStatus) // sync สถานะกลับไปที่ booking ให้ dashboard/คิวนับถูก
 
-      setRepair(prev => ({
-        ...prev,
-        status: newStatus,
-        ...(newStatus === 'awaiting_approval' ? { approval: { state: 'pending' } } : {}),
-        ...(updates.mileage ? { mileage: updates.mileage, nextMaintenance: updates.nextMaintenance } : {})
-      }))
+      setRepair(prev => ({ ...prev, status: newStatus }))
       setRepairs(prev => prev.map(r => r.id === repair.id ? { ...r, status: newStatus } : r))
       setMsg('✅ บันทึกสถานะแล้ว — แจ้งเตือนลูกค้าเรียบร้อย')
       setItemName(''); setQty(''); setNote('')
@@ -481,81 +344,6 @@ function RepairsPageContent() {
                     ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />บันทึก...</>
                     : needApproval ? 'รอลูกค้าอนุมัติก่อน' : 'บันทึก + แจ้งเตือน'}
                 </button>
-
-                {/* Maintenance Card */}
-                <div className="mt-4 pt-4 border-t border-token">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-adim text-acc flex items-center justify-center">
-                        <Gauge size={16} />
-                      </div>
-                      <span className="text-xs font-bold text-t1 uppercase tracking-wider">บันทึกเลขไมล์ & รอบบำรุงรักษา</span>
-                    </div>
-                    {maintenanceSaved && (
-                      <span className="text-[10px] font-bold text-grn bg-gdim px-2 py-0.5 rounded-md flex items-center gap-1">
-                        <Check size={12} /> บันทึกแล้ว
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mb-2">
-                    <label className="text-[11px] text-t2 block mb-1">เลขไมล์ปัจจุบัน (กม.)</label>
-                    <input
-                      type="number"
-                      className="input-field font-mono text-xs font-bold"
-                      placeholder="เช่น 85000"
-                      value={mileage}
-                      onChange={e => handleMileageChange(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <button
-                      type="button"
-                      onClick={() => handlePresetSelect(10000, 6, 'ถ่ายน้ำมันเครื่อง (สังเคราะห์แท้)')}
-                      className={`p-1.5 rounded-lg text-left border text-[11px] cursor-pointer ${
-                        intervalKm === 10000 && intervalMonths === 6
-                          ? 'border-acc bg-adim text-acc font-bold'
-                          : 'border-token bg-s2 text-t2'
-                      }`}
-                    >
-                      <p className="font-bold">✨ สังเคราะห์แท้</p>
-                      <p className="text-[9px] opacity-80">+10,000 กม. / 6 ด.</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handlePresetSelect(5000, 3, 'ถ่ายน้ำมันเครื่อง (กึ่งสังเคราะห์)')}
-                      className={`p-1.5 rounded-lg text-left border text-[11px] cursor-pointer ${
-                        intervalKm === 5000 && intervalMonths === 3
-                          ? 'border-acc bg-adim text-acc font-bold'
-                          : 'border-token bg-s2 text-t2'
-                      }`}
-                    >
-                      <p className="font-bold">🔧 กึ่งสังเคราะห์</p>
-                      <p className="text-[9px] opacity-80">+5,000 กม. / 3 ด.</p>
-                    </button>
-                  </div>
-
-                  <div className="p-2 rounded-xl bg-s2 border border-token mb-2 text-[11px] space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-t2">🎯 เลขไมล์ถัดไป:</span>
-                      <span className="font-bold text-t1 font-mono">{targetMileage ? `${Number(targetMileage).toLocaleString()} กม.` : '—'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-t2">📅 วันที่ครบกำหนด:</span>
-                      <span className="font-bold text-acc">{targetDate ? new Date(targetDate).toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' }) : '—'}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSaveMaintenanceOnly}
-                    disabled={saving || !mileage}
-                    className="w-full py-2 rounded-xl text-xs font-bold border border-acc text-acc bg-adim hover:bg-acc hover:text-white transition-all cursor-pointer"
-                  >
-                    {saving ? 'กำลังบันทึก...' : '💾 บันทึกเฉพาะระยะบำรุงรักษา'}
-                  </button>
-                </div>
               </div>
             </div>
           ) : (

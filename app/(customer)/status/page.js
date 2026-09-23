@@ -123,24 +123,31 @@ export default function StatusPage() {
     if (!repair) return
     setSaving(true)
     try {
-      const nextStatus = isApprove ? 'repairing' : 'diagnosing'
       const updates = {
-        approval: {
-          state: isApprove ? 'approved' : 'rejected',
-          approvedBy: uid || repair.userId || null,
-          approvedAt: Date.now(),
-          note: isApprove ? 'ลูกค้ายืนยันอนุมัติการซ่อม' : 'ลูกค้าไม่อนุมัติการซ่อม',
-        },
-        status: nextStatus,
-        timeline: arrayUnion({
-          status: nextStatus,
+        'approval.state': isApprove ? 'approved' : 'rejected',
+        'approval.updatedAt': serverTimestamp(),
+      }
+
+      const newTimelineEvents = [
+        {
+          status: 'awaiting_approval',
           at: Date.now(),
           by: 'customer',
           note: isApprove ? 'ลูกค้ายืนยันอนุมัติการซ่อม' : 'ลูกค้าไม่อนุมัติการซ่อม',
-        }),
-        updatedAt: serverTimestamp(),
+        },
+      ]
+
+      if (isApprove) {
+        updates.status = 'repairing'
+        newTimelineEvents.push({
+          status: 'repairing',
+          at: Date.now() + 1000,
+          by: 'system',
+          note: 'เริ่มซ่อม (อัตโนมัติหลังลูกค้ายืนยัน)',
+        })
       }
 
+      updates.timeline = arrayUnion(...newTimelineEvents)
       await updateDoc(doc(db, 'repairs', repair.id), updates)
 
       if (isApprove && repair.bookingId) {
@@ -148,7 +155,7 @@ export default function StatusPage() {
       }
     } catch (e) {
       console.error(e)
-      alert('บันทึกไม่สำเร็จ: ' + (e.code === 'permission-denied' ? 'ไม่มีสิทธิ์ (ต้องเป็นเจ้าของรถ)' : e.message))
+      alert('บันทึกไม่สำเร็จ: ' + e.message)
     } finally {
       setSaving(false)
     }
@@ -262,29 +269,22 @@ export default function StatusPage() {
               )}
 
               {/* Approval UI */}
-              {repair.status === 'awaiting_approval' && repair.approval?.state !== 'approved' && (
+              {repair.status === 'awaiting_approval' && repair.approval?.state === 'pending' && (
                 <div className="mt-4 pt-4 border-t border-dashed border-acc/40 bg-adim p-4 rounded-2xl">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="w-2.5 h-2.5 rounded-full bg-acc animate-ping inline-block" />
-                    <p className="text-xs font-bold text-acc uppercase tracking-wider">ต้องการการยืนยันจากคุณ</p>
-                  </div>
+                  <p className="text-xs font-bold text-acc mb-1 uppercase tracking-wider">ต้องการการยืนยันจากคุณ</p>
                   <p className="text-xs text-t1 mb-3">กรุณาตรวจสอบรายการประเมินราคาและยืนยันเพื่อให้ช่างเริ่มดำเนินการซ่อม</p>
                   <div className="flex gap-2.5">
                     <button
-                      type="button"
                       onClick={() => handleApprove(false)}
                       disabled={saving}
-                      className="flex-1 py-3 rounded-xl text-xs font-bold border border-token cursor-pointer transition-opacity"
-                      style={{ backgroundColor: 'var(--s2)', color: 'var(--err)' }}
+                      className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-s2 hover:bg-s3 text-err border border-token cursor-pointer"
                     >
                       ไม่อนุมัติ
                     </button>
                     <button
-                      type="button"
                       onClick={() => handleApprove(true)}
                       disabled={saving}
-                      className="flex-[2] py-3 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer transition-opacity"
-                      style={{ backgroundColor: 'var(--acc)', color: '#ffffff', opacity: saving ? 0.75 : 1 }}
+                      className="flex-[2] py-2.5 rounded-xl text-xs font-bold text-white bg-acc hover:opacity-90 shadow-sm cursor-pointer"
                     >
                       {saving ? 'กำลังบันทึก...' : 'อนุมัติการซ่อม ✓'}
                     </button>
@@ -292,17 +292,14 @@ export default function StatusPage() {
                 </div>
               )}
 
-              {repair.approval?.state === 'approved' && (
+              {repair.approval?.state && repair.approval?.state !== 'pending' && (
                 <div className="mt-4 pt-3 border-t border-dashed border-token text-center">
-                  <span className="text-xs font-bold px-3.5 py-1.5 rounded-full inline-block bg-gdim text-grn border border-grn/30">
-                    ✓ คุณอนุมัติการซ่อมแล้ว
-                  </span>
-                </div>
-              )}
-              {repair.approval?.state === 'rejected' && repair.status !== 'awaiting_approval' && (
-                <div className="mt-4 pt-3 border-t border-dashed border-token text-center">
-                  <span className="text-xs font-bold px-3.5 py-1.5 rounded-full inline-block bg-errdim text-err border border-err/30">
-                    ✕ คุณปฏิเสธการซ่อม
+                  <span
+                    className={`text-xs font-bold px-3.5 py-1.5 rounded-full inline-block ${
+                      repair.approval.state === 'approved' ? 'bg-gdim text-grn border border-grn/30' : 'bg-errdim text-err border border-err/30'
+                    }`}
+                  >
+                    {repair.approval.state === 'approved' ? '✓ คุณอนุมัติการซ่อมแล้ว' : '✕ คุณปฏิเสธการซ่อม'}
                   </span>
                 </div>
               )}

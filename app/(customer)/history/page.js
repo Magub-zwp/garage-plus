@@ -127,60 +127,22 @@ export default function HistoryPage() {
                     {h.displayDetail}
                   </p>
 
-                  {/* Mileage info badge if recorded */}
-                  {h.mileage ? (
-                    <div className="flex items-center gap-2 mb-2 text-xs text-t3">
-                      <span className="px-2 py-0.5 rounded-md bg-s2 border border-token font-medium text-t2">
-                        📍 เลขไมล์ตอนเข้าซ่อม: <strong className="text-t1">{(h.mileage || 0).toLocaleString()} กม.</strong>
-                      </span>
-                    </div>
-                  ) : null}
-
                   {/* Expansion panel for details */}
                   {isExpanded && (
-                    <div className="mb-3 pt-2.5 border-t border-dashed border-token space-y-3">
-                      <div>
-                        <p className="text-[11px] font-bold text-t3 uppercase tracking-wider mb-1.5">
-                          รายการค่าใช้จ่ายและอะไหล่
-                        </p>
-                        {h.costItems && h.costItems.length > 0 ? (
-                          h.costItems.map((item, idx) => (
-                            <div key={idx} className="flex justify-between text-xs py-1">
-                              <span className="text-t2">{item.name} {item.qty ? `×${item.qty}` : ''}</span>
-                              <span className="text-t1 font-semibold">฿{(item.price || 0).toLocaleString()}</span>
-                            </div>
-                          ))
-                        ) : h.proposedJobs && h.proposedJobs.length > 0 ? (
-                          h.proposedJobs.map((item, idx) => (
-                            <div key={idx} className="flex justify-between text-xs py-1">
-                              <span className="text-t2">{item.name}</span>
-                              <span className="text-acc font-semibold bg-s2 px-2 py-0.5 rounded-md border border-token">
-                                จำนวน ×{item.qty || 1}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs text-t3 py-1">ไม่มีรายการแจกแจงแยกชิ้น</p>
-                        )}
-                      </div>
-
-                      {/* Next maintenance reminder info if recorded */}
-                      {h.nextMaintenance?.targetMileage || h.nextMaintenance?.targetDate ? (
-                        <div className="p-2.5 rounded-2xl bg-adim/40 border border-acc/20 text-xs">
-                          <p className="font-bold text-acc flex items-center gap-1.5 mb-1">
-                            <span>📅 รอบบำรุงรักษาถัดไป</span>
-                            <span className="text-[10px] text-t3 font-normal">(อันไหนถึงก่อน)</span>
-                          </p>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-t2 text-[11px]">
-                            {h.nextMaintenance.targetMileage && (
-                              <span>• ระยะทาง: <strong className="text-t1">{Number(h.nextMaintenance.targetMileage).toLocaleString()} กม.</strong></span>
-                            )}
-                            {h.nextMaintenance.targetDate && (
-                              <span>• วันที่: <strong className="text-t1">{new Date(h.nextMaintenance.targetDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}</strong></span>
-                            )}
+                    <div className="mb-3 pt-2.5 border-t border-dashed border-token">
+                      <p className="text-[11px] font-bold text-t3 uppercase tracking-wider mb-1.5">
+                        รายการค่าใช้จ่ายและอะไหล่
+                      </p>
+                      {h.costItems && h.costItems.length > 0 ? (
+                        h.costItems.map((item, idx) => (
+                          <div key={idx} className="flex justify-between text-xs py-1">
+                            <span className="text-t2">{item.name}</span>
+                            <span className="text-t1 font-semibold">฿{(item.price || 0).toLocaleString()}</span>
                           </div>
-                        </div>
-                      ) : null}
+                        ))
+                      ) : (
+                        <p className="text-xs text-t3 py-1">ไม่มีรายการแจกแจงแยกชิ้น</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -190,15 +152,9 @@ export default function HistoryPage() {
                     ช่าง: <span className="text-t2 font-medium">{h.mechanic || h.mechanicName || '-'}</span>
                   </span>
                   <div className="flex items-center gap-1.5">
-                    {h.totalPrice > 0 ? (
-                      <span className="text-sm font-extrabold text-acc">
-                        ฿{h.totalPrice.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-s2 text-t2 border border-token">
-                        ตามใบรับรถ
-                      </span>
-                    )}
+                    <span className="text-sm font-extrabold text-acc">
+                      ฿{(h.totalPrice || 0).toLocaleString()}
+                    </span>
                     <span className="text-[10px] text-t3 ml-1 bg-s2 px-1.5 py-0.5 rounded-md">
                       {isExpanded ? '▲ ซ่อน' : '▼ ดูเพิ่ม'}
                     </span>

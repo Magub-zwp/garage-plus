@@ -140,17 +140,7 @@ export default function ProfilePage() {
                           รถหลัก
                         </span>
                       )}
-                      {car.currentMileage && (
-                        <span className="text-[10px] font-medium text-t3">
-                          • {Number(car.currentMileage).toLocaleString()} กม.
-                        </span>
-                      )}
                     </div>
-                    {car.nextServiceMileage || car.nextServiceDate ? (
-                      <p className="text-[10px] text-acc mt-1 font-medium">
-                        รอบถัดไป: {car.nextServiceMileage ? `${Number(car.nextServiceMileage).toLocaleString()} กม.` : ''} {car.nextServiceDate ? `(${new Date(car.nextServiceDate).toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })})` : ''}
-                      </p>
-                    ) : null}
                   </div>
                   <button
                     onClick={() => setDeleteTarget(car.id)}
@@ -230,17 +220,13 @@ export default function ProfilePage() {
             </p>
             <div className="flex gap-2.5">
               <button
-                type="button"
                 className="flex-1 py-3 bg-s2 hover:bg-s3 rounded-2xl text-xs font-bold text-t1 border-none cursor-pointer"
-                style={{ backgroundColor: 'var(--s2)', color: 'var(--t1)' }}
                 onClick={() => setDeleteTarget(null)}
               >
                 ยกเลิก
               </button>
               <button
-                type="button"
                 className="flex-1 py-3 rounded-2xl text-xs font-bold text-white border-none cursor-pointer flex items-center justify-center gap-2 bg-err hover:opacity-90 shadow-sm"
-                style={{ backgroundColor: 'var(--err)', color: '#ffffff' }}
                 onClick={() => handleDeleteCar(deleteTarget)}
                 disabled={deleting}
               >
@@ -262,17 +248,13 @@ export default function ProfilePage() {
             <p className="text-xs text-t2 leading-relaxed mb-5">คุณจะต้องลงชื่อเข้าใช้อีกครั้งเมื่อต้องการเข้าถึงข้อมูล</p>
             <div className="flex gap-2.5">
               <button
-                type="button"
                 className="flex-1 py-3 bg-s2 hover:bg-s3 rounded-2xl text-xs font-bold text-t1 border-none cursor-pointer"
-                style={{ backgroundColor: 'var(--s2)', color: 'var(--t1)' }}
                 onClick={() => setShowLogout(false)}
               >
                 ยกเลิก
               </button>
               <button
-                type="button"
                 className="flex-1 py-3 rounded-2xl text-xs font-bold text-white border-none cursor-pointer bg-err hover:opacity-90 shadow-sm"
-                style={{ backgroundColor: 'var(--err)', color: '#ffffff' }}
                 onClick={handleLogout}
               >
                 ออกจากระบบ

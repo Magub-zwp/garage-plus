@@ -12,8 +12,6 @@ import { useArticles } from '@/hooks/useArticles'
 import { db } from '@/lib/firebase/config'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import AppIcon from '@/components/common/AppIcon'
-import ApprovalCard from '@/components/customer/ApprovalCard'
-import MaintenanceTracker from '@/components/customer/MaintenanceTracker'
 
 const QUICK_ACTIONS = [
   { icon: 'book',      label: 'จองคิว',    href: '/book',        desc: 'นัดหมายซ่อมล่วงหน้า' },
@@ -231,24 +229,23 @@ export default function HomePage() {
                 </div>
 
                 {/* Repair Status Badge inside car card */}
-                {repair && ['waiting', 'diagnosing', 'awaiting_approval', 'repairing', 'qc'].includes(repair.status) &&
-                 (!currentCar || currentCar?.id === repair.carId || currentCar?.plate === repair.plate || currentCar?.plate === repair.carPlate) ? (
+                {repair && currentCar?.id === repair.carId ? (
                   <Link href="/status">
                     <div className="flex items-center gap-3 mt-4 p-3 bg-s2/80 hover:bg-s2 rounded-2xl border border-token transition-colors">
                       <div
                         className="w-3 h-3 rounded-full animate-ping flex-shrink-0"
-                        style={{ background: badge?.color || (repair.status === 'awaiting_approval' ? 'var(--err)' : 'var(--acc)') }}
+                        style={{ background: badge?.color || 'var(--grn)' }}
                       />
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs font-bold block" style={{ color: badge?.color || (repair.status === 'awaiting_approval' ? 'var(--err)' : 'var(--acc)') }}>
-                          {repair.status === 'awaiting_approval' ? '⚠️ รออนุมัติการซ่อมจากคุณ' : (badge?.text || 'กำลังดำเนินการซ่อม')}
+                        <span className="text-xs font-bold block" style={{ color: badge?.color || 'var(--grn)' }}>
+                          {badge?.text || 'กำลังดำเนินการซ่อม'}
                         </span>
                         <span className="text-[11px] text-t2 truncate block">
-                          {repair.jobDetail || (repair.status === 'awaiting_approval' ? 'ช่างประเมินเสร็จแล้ว — คลิกเพื่อตรวจสอบและยืนยัน' : 'คลิกเพื่อดูรายละเอียดและภาพความคืบหน้า')}
+                          {repair.jobDetail || 'คลิกเพื่อดูรายละเอียดและภาพความคืบหน้า'}
                         </span>
                       </div>
-                      <span className="text-xs text-acc font-bold bg-surf px-2.5 py-1 rounded-xl border border-token flex-shrink-0">
-                        {repair.status === 'awaiting_approval' ? 'กดยืนยัน ›' : 'ติดตามสด ›'}
+                      <span className="text-xs text-acc font-bold bg-surf px-2.5 py-1 rounded-xl border border-token">
+                        ติดตามสด ›
                       </span>
                     </div>
                   </Link>
@@ -269,14 +266,6 @@ export default function HomePage() {
               </div>
             </div>
           )}
-
-          {/* Maintenance & Mileage Tracker */}
-          {currentCar && (
-            <MaintenanceTracker car={currentCar} />
-          )}
-
-          {/* Consent / Approval Card (เมื่อช่างขออนุมัติงานซ่อม) */}
-          <ApprovalCard repair={repair} uid={uid} />
 
           {/* Quick Service Chips */}
           <div className="bg-surf rounded-3xl p-4 border border-token hidden sm:block shadow-sm">
