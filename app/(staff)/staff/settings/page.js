@@ -26,7 +26,7 @@ export default function StaffSettingsPage() {
     closeTime: '17:00',
     offDays: [0, 6],
   })
-  const [isDark,   setIsDark]   = useState(true)
+  const [isDark,   setIsDark]   = useState(false)
   const [pw,       setPw]       = useState({ current:'', newPw:'', confirm:'' })
   const [pwMsg,    setPwMsg]    = useState('')
   const [pwSaving, setPwSaving] = useState(false)
@@ -35,7 +35,7 @@ export default function StaffSettingsPage() {
   const [loading,  setLoading]  = useState(true)
 
   useEffect(() => {
-    const dark = localStorage.getItem('gp_staff_dark') !== '0'
+    const dark = localStorage.getItem('gp_staff_dark') === '1'
     setIsDark(dark)
     if (!isAdmin) { setLoading(false); return }
 

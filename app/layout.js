@@ -19,7 +19,7 @@ export default function RootLayout({ children }) {
     <html lang="th" suppressHydrationWarning translate="no">
       <head>
         <script dangerouslySetInnerHTML={{ __html:
-          `(function(){try{if(localStorage.getItem('gp_dark')!=='0')document.documentElement.classList.add('dark')}catch(e){}})()`
+          `(function(){try{if(localStorage.getItem('gp_dark')==='1')document.documentElement.classList.add('dark')}catch(e){}})()`
         }}/>
         <link rel="manifest" href="/manifest.json"/>
         <meta name="theme-color" content="#E8863A"/>

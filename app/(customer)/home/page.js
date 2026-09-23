@@ -39,14 +39,14 @@ export default function HomePage() {
   const [slideIdx,  setSlideIdx]= useState(0)
   const { articles }            = useArticles('all', 8)
   const [unread, setUnread]     = useState(0)
-  const [isDark, setIsDark]     = useState(true)
+  const [isDark, setIsDark]     = useState(false)
   const [mounted, setMounted]   = useState(false)
   const trackRef                = useRef(null)
   const timerRef                = useRef(null)
 
   useEffect(() => {
     setMounted(true)
-    setIsDark(localStorage.getItem('gp_dark') !== '0')
+    setIsDark(localStorage.getItem('gp_dark') === '1')
   }, [])
 
   const toggleDarkMode = () => {

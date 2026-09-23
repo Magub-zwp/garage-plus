@@ -23,7 +23,7 @@ export default function CustomerHeader() {
   const { uid, isLoggedIn } = useAuth()
   const { user, cars, mainCar } = useUser()
   const [unread, setUnread] = useState(0)
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   // Listen to unread notifications
@@ -40,7 +40,7 @@ export default function CustomerHeader() {
   // Sync dark mode state
   useEffect(() => {
     setMounted(true)
-    const dark = localStorage.getItem('gp_dark') !== '0'
+    const dark = localStorage.getItem('gp_dark') === '1'
     setIsDark(dark)
   }, [])
 
